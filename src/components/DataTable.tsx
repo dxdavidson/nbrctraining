@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import './DataTable.css'
 
 export interface Column<Row> {
@@ -15,6 +15,8 @@ interface DataTableProps<Row> {
   getRowId: (row: Row) => string
   selectedId: string | null
   onSelectRow: (row: Row) => void
+  expandedRowId?: string | null
+  renderExpandedRow?: (row: Row) => React.ReactNode
   loading: boolean
   emptyMessage: string
 }
@@ -28,6 +30,8 @@ export default function DataTable<Row>({
   getRowId,
   selectedId,
   onSelectRow,
+  expandedRowId = null,
+  renderExpandedRow,
   loading,
   emptyMessage,
 }: DataTableProps<Row>) {
@@ -58,7 +62,7 @@ export default function DataTable<Row>({
 
   return (
     <div className="data-table-wrapper">
-      <table className="data-table">
+      <table className={`data-table data-table-${caption.toLowerCase()}`}>
         <caption>{caption}</caption>
         <thead>
           <tr>
@@ -104,24 +108,32 @@ export default function DataTable<Row>({
             sortedRows.map((row) => {
               const id = getRowId(row)
               const isSelected = id === selectedId
+              const isExpanded = id === expandedRowId && Boolean(renderExpandedRow)
               return (
-                <tr
-                  key={id}
-                  tabIndex={0}
-                  aria-selected={isSelected}
-                  className={isSelected ? 'data-table-row-selected' : undefined}
-                  onClick={() => onSelectRow(row)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      onSelectRow(row)
-                    }
-                  }}
-                >
-                  {columns.map((column) => (
-                    <td key={column.key}>{column.render(row)}</td>
-                  ))}
-                </tr>
+                <Fragment key={id}>
+                  <tr
+                    tabIndex={0}
+                    aria-selected={isSelected}
+                    aria-expanded={isExpanded ? true : undefined}
+                    className={isSelected ? 'data-table-row-selected' : undefined}
+                    onClick={() => onSelectRow(row)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        onSelectRow(row)
+                      }
+                    }}
+                  >
+                    {columns.map((column) => (
+                      <td key={column.key}>{column.render(row)}</td>
+                    ))}
+                  </tr>
+                  {isExpanded && (
+                    <tr className="data-table-detail-row">
+                      <td colSpan={columns.length}>{renderExpandedRow!(row)}</td>
+                    </tr>
+                  )}
+                </Fragment>
               )
             })}
         </tbody>

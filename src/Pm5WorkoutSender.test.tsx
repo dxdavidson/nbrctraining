@@ -31,6 +31,7 @@ describe('Pm5WorkoutSender', () => {
   ]
 
   beforeEach(() => {
+    window.history.pushState({}, '', '?diagnostics=1')
     window.localStorage.setItem('nbrctraining.estimated2kTimeSeconds', JSON.stringify(447))
 
     const mockBufferFactory = () => {
@@ -102,13 +103,24 @@ describe('Pm5WorkoutSender', () => {
           return sharedMonitor
         }
       },
-      LogLevel: { debug: 2 },
+      LogLevel: { error: 0, debug: 2 },
       MonitorConnectionState: { readyForCommunication: 6 },
     }
   })
 
   afterEach(() => {
+    window.history.pushState({}, '', '/')
     vi.clearAllMocks()
+  })
+
+  it('hides diagnostics unless diagnostics=1 is present in the URL', async () => {
+    window.history.pushState({}, '', '/')
+    render(<Pm5WorkoutSender workout={workout} intervals={intervals} />)
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /connect pm5/i }))
+
+    expect(screen.queryByText(/No commands sent yet/i)).not.toBeInTheDocument()
   })
 
   it('sends the fixed-time interval protocol without pace', async () => {
@@ -187,6 +199,42 @@ describe('Pm5WorkoutSender', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/workout sent/i)
 
     expect(screen.getByText(/PM_CONFIGURE_WORKOUT/i)).toBeInTheDocument()
+  })
+
+  it('uses variable intervals for a mixed distance and time workout', async () => {
+    const mixedIntervals: Interval[] = [
+      {
+        ...intervals[0],
+        repeat_count: 1,
+        work_value: 500,
+        target_value: 5,
+      },
+      {
+        ...intervals[0],
+        id: 'i2',
+        interval_code: 'I2',
+        interval_order: 2,
+        repeat_count: 1,
+        work_kind: 'time',
+        work_value: 180,
+        target_value: 5,
+      },
+    ]
+
+    const user = userEvent.setup()
+    render(<Pm5WorkoutSender workout={workout} intervals={mixedIntervals} />)
+    await user.click(screen.getByRole('button', { name: /connect pm5/i }))
+    await user.click(screen.getByRole('button', { name: /send workout to pm5/i }))
+
+    const pm5Monitor = (window as typeof window & { ergometer?: any }).ergometer.PerformanceMonitorBle
+    const instance = new pm5Monitor()
+    expect(instance.newCsafeBuffer).toHaveBeenCalledTimes(7)
+    expect(instance.newCsafeBuffer.mock.results[0].value.setWorkoutType).toHaveBeenCalledWith({ value: 8 })
+    expect(instance.newCsafeBuffer.mock.results[3].value.setWorkoutIntervalCount).toHaveBeenCalledWith({ value: 1 })
+    expect(instance.newCsafeBuffer.mock.results[4].value.setWorkoutDuration).toHaveBeenCalledWith({ value: 18000, durationType: 0 })
+    expect(instance.newCsafeBuffer.mock.results[5].value.setTargetPaceTime).toHaveBeenCalled()
+    expect(instance.newCsafeBuffer.mock.results[6].value.setScreenState).toHaveBeenCalledWith({ screenType: 1, value: 1 })
+    expect(screen.getByRole('status')).toHaveTextContent(/workout sent/i)
   })
 
   it('requires a PM5 connection before sending the selected workout intervals', async () => {

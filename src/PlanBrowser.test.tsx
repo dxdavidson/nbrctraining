@@ -94,6 +94,24 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
     expect(api.fetchBlocks).toHaveBeenCalledWith('p1')
     expect(api.fetchWorkouts).toHaveBeenCalledWith('b1')
   })
+
+  it('preserves diagnostics when selecting a workout', async () => {
+    window.history.replaceState(null, '', '/?diagnostics=1')
+    const user = userEvent.setup()
+    render(<PlanBrowser />)
+
+    const plansTable = await screen.findByRole('table', { name: 'Plans' })
+    await user.click(within(plansTable).getByText('Plan One'))
+    expect(new URLSearchParams(window.location.search).get('diagnostics')).toBe('1')
+    const blocksTable = await screen.findByRole('table', { name: 'Blocks' })
+    await user.click(within(blocksTable).getByText('Block One'))
+    expect(new URLSearchParams(window.location.search).get('diagnostics')).toBe('1')
+    const workoutsTable = await screen.findByRole('table', { name: 'Workouts' })
+    await user.click(within(workoutsTable).getByText('WC1'))
+
+    expect(new URLSearchParams(window.location.search).get('diagnostics')).toBe('1')
+    expect(await screen.findByRole('table', { name: 'Intervals' })).toBeInTheDocument()
+  })
 })
 
 describe('PlanBrowser master-detail layout (wide screens)', () => {
@@ -107,6 +125,9 @@ describe('PlanBrowser master-detail layout (wide screens)', () => {
 
     expect(await screen.findByRole('table', { name: 'Plans' })).toBeInTheDocument()
     expect(await screen.findByRole('table', { name: 'Blocks' })).toBeInTheDocument()
+    await user.click(within(screen.getByRole('table', { name: 'Blocks' })).getByText('Block One'))
+    expect(screen.queryByRole('table', { name: 'Blocks' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('table', { name: 'Workouts' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '← Back' })).not.toBeInTheDocument()
   })
 

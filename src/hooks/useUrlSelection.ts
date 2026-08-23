@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from 'react'
+import { useCallback, useRef, useSyncExternalStore } from 'react'
 
 export interface Selection {
   planId: string | null
@@ -37,10 +37,19 @@ function subscribe(callback: () => void) {
  */
 export function useUrlSelection() {
   const selection = useSyncExternalStore(subscribe, readSelection, readSelection)
+  const diagnosticsEnabled = useRef(new URLSearchParams(window.location.search).get('diagnostics') === '1')
 
   const setSelection = useCallback((next: Partial<Selection>) => {
-    const params = new URLSearchParams(window.location.search)
-    const merged = { ...readSelection(), ...next }
+    const currentParams = new URLSearchParams(window.location.search)
+    const params = new URLSearchParams(currentParams)
+    const preserveDiagnostics = diagnosticsEnabled.current || currentParams.get('diagnostics') === '1'
+    if (preserveDiagnostics) params.set('diagnostics', '1')
+    const merged: Selection = {
+      planId: params.get('planId'),
+      blockId: params.get('blockId'),
+      workoutId: params.get('workoutId'),
+      ...next,
+    }
 
     for (const name of PARAM_NAMES) {
       const value = merged[name]
@@ -52,7 +61,7 @@ export function useUrlSelection() {
     }
 
     const query = params.toString()
-    const url = `${window.location.pathname}${query ? `?${query}` : ''}`
+    const url = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
     window.history.pushState(null, '', url)
     window.dispatchEvent(new PopStateEvent('popstate'))
   }, [])

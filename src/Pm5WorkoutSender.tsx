@@ -7,7 +7,7 @@ declare global {
     ergometer?: {
       ble: { hasWebBlueTooth: () => boolean }
       PerformanceMonitorBle: new () => any
-      LogLevel: { debug: number }
+      LogLevel: { error: number; debug: number }
       MonitorConnectionState: { readyForCommunication: number }
     }
   }
@@ -224,6 +224,7 @@ function toTargetPaceHundredths(interval: Interval, estimated2kSeconds: number |
 }
 
 export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSenderProps) {
+  const diagnosticsEnabled = new URLSearchParams(window.location.search).get('diagnostics') === '1'
   const [estimated2kSeconds] = useEstimated2kSeconds()
   const [pm5, setPm5] = useState<any>(null)
   const [isConnected, setIsConnected] = useState(false)
@@ -254,11 +255,13 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
     setCommandLog('No commands sent yet.')
     const monitor = new ergometer.PerformanceMonitorBle()
     monitor._commandTimeout = 5000
-    monitor.logLevel = ergometer.LogLevel.debug
+    monitor.logLevel = diagnosticsEnabled ? ergometer.LogLevel.debug : ergometer.LogLevel.error
 
-    monitor.logEvent?.sub?.(window, (info: string, level: number) => {
-      setCommandLog((previous) => appendCommandHistory(previous, `[${level}] ${info}`))
-    })
+    if (diagnosticsEnabled) {
+      monitor.logEvent?.sub?.(window, (info: string, level: number) => {
+        setCommandLog((previous) => appendCommandHistory(previous, `[${level}] ${info}`))
+      })
+    }
 
     monitor.connectionStateChangedEvent.sub(window, (_previousState: number, nextState: number) => {
       const readyState = ergometer.MonitorConnectionState.readyForCommunication
@@ -272,9 +275,11 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
       }
     })
 
-    monitor.rowingGeneralStatusEvent.sub(window, (data: Record<string, unknown>) => {
-      setStatus(`PM5 live status: ${JSON.stringify(data)}`)
-    })
+    if (diagnosticsEnabled) {
+      monitor.rowingGeneralStatusEvent.sub(window, (data: Record<string, unknown>) => {
+        setStatus(`PM5 live status: ${JSON.stringify(data)}`)
+      })
+    }
 
     setPm5(monitor)
     setStatus('Choose your PM5 in the Bluetooth picker...')
@@ -296,6 +301,11 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
 
       let intervalIndex = 0
       let screenSent = false
+      const totalIntervalCount = orderedIntervals.reduce(
+        (count, interval) => count + Math.max(1, interval.repeat_count ?? 1),
+        0
+      )
+      const useVariableInterval = totalIntervalCount > 1
       for (const interval of orderedIntervals) {
         const repeatCount = Math.max(1, interval.repeat_count ?? 1)
         for (let repeat = 0; repeat < repeatCount; repeat += 1) {
@@ -304,11 +314,11 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
           const workValue = interval.work_value ?? 0
           const recoverySeconds = interval.recovery_kind === 'time' ? Math.max(0, Math.round(interval.recovery_value ?? 0)) : 0
           const isDistanceBased = interval.work_kind === 'distance'
-          const targetPaceHundredths = isDistanceBased ? toTargetPaceHundredths(interval, estimated2kSeconds) : null
+          const targetPaceHundredths = toTargetPaceHundredths(interval, estimated2kSeconds)
 
           setCommandLog((previous) => appendCommandHistory(previous, logIntervalDiagnostics(intervalIndex, interval, intervalType, durationType, workValue, recoverySeconds, isDistanceBased, targetPaceHundredths)))
 
-          if (!isDistanceBased) {
+          if (!isDistanceBased && !useVariableInterval) {
             const durationStartTime = performance.now()
             const durationCommand = pm5
               .newCsafeBuffer()
@@ -349,11 +359,11 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
           const setupDuration = performance.now() - startTime
           setCommandLog((previous) => appendCommandHistory(previous, `[diag] Setup buffer sent in ${setupDuration.toFixed(1)}ms`))
 
-          if (isDistanceBased && targetPaceHundredths !== null) {
+          if (targetPaceHundredths !== null) {
             const distStartTime = performance.now()
             const durationBuffer = pm5
               .newCsafeBuffer()
-              .setWorkoutDuration({ value: workValue, durationType })
+              .setWorkoutDuration({ value: isDistanceBased ? workValue : Math.max(0, Math.round(workValue * 100)), durationType })
               .setRestDuration({ value: recoverySeconds })
             setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: distance + rest`, durationBuffer)))
             await durationBuffer.send()
@@ -369,11 +379,11 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
             await paceCommand.send()
             const paceDuration = performance.now() - paceStartTime
             setCommandLog((previous) => appendCommandHistory(previous, `[diag] Pace/configure buffer sent in ${paceDuration.toFixed(1)}ms`))
-          } else {
+          } else if (isDistanceBased || useVariableInterval) {
             const noPaceStartTime = performance.now()
             const durationBuffer = pm5
               .newCsafeBuffer()
-              .setWorkoutDuration({ value: workValue, durationType })
+              .setWorkoutDuration({ value: isDistanceBased ? workValue : Math.max(0, Math.round(workValue * 100)), durationType })
               .setRestDuration({ value: recoverySeconds })
             setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: distance + rest (no pace)`, durationBuffer)))
             await durationBuffer.send()
@@ -469,13 +479,13 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
         </p>
       )}
 
-      {commandLog && (
+      {diagnosticsEnabled && commandLog && (
         <pre className="pm5-workout-sender-log" aria-live="polite">
           {commandLog}
         </pre>
       )}
 
-      {deviceInfo && (
+      {diagnosticsEnabled && deviceInfo && (
         <pre className="pm5-workout-sender-device">
           {JSON.stringify(deviceInfo, null, 2)}
         </pre>

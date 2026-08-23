@@ -79,3 +79,39 @@
   padding: 1.5rem 1rem;
   white-space: normal;
 }
+
+.data-table-detail-row > td {
+  padding: 0.75rem 1rem 1rem 2rem;
+  background: var(--accent-bg);
+  white-space: normal;
+}
+
+.data-table-detail-row .data-table-wrapper {
+  background: var(--surface, transparent);
+}
+
+.data-table-workouts {
+  table-layout: fixed;
+}
+
+.data-table-workouts th:nth-child(1),
+.data-table-workouts td:nth-child(1) {
+  width: 16%;
+}
+
+.data-table-workouts th:nth-child(2),
+.data-table-workouts td:nth-child(2) {
+  width: 18%;
+}
+
+.data-table-workouts th:nth-child(3),
+.data-table-workouts td:nth-child(3) {
+  width: 12%;
+}
+
+.data-table-workouts th:nth-child(4),
+.data-table-workouts td:nth-child(4) {
+  width: 54%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

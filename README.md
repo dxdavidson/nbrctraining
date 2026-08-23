@@ -107,7 +107,7 @@ The test suite uses Vitest with a `jsdom` environment and Testing Library. Tests
 
 ## PM5 time-interval protocol
 
-For a time-based interval such as 5:00 (300 seconds), the app follows ErgometerJS's fixed-time interval example. The duration command uses hundredths of a second (`30000`), and the second buffer combines rest, configure, and screen state.
+For a standalone time-based workout such as 5:00 (300 seconds), the app follows ErgometerJS's fixed-time interval example. When a workout contains multiple intervals, the app uses ErgometerJS's variable-interval sequence instead, including time intervals as `intervalType=time` entries.
 
 **Sequence for a 5-minute time interval with 2-minute rest:**
 
@@ -120,6 +120,7 @@ For a time-based interval such as 5:00 (300 seconds), the app follows ErgometerJ
 **Critical PM5 protocol rules:**
 
 - **For fixed time intervals, send duration first, then rest/configure/screen together.**
+- **For multi-interval workouts, use `variableInterval` (`workoutType=8`) for every interval and send one final screen command.**
 - **Use `durationType=0x00`** for time-based intervals, `0x80` for distance.
 - Real PM5 validation confirmed both distance and time workouts work with these sequences.
 
@@ -152,7 +153,7 @@ The PM5 protocol requires commands to be sent in separate C-safe buffers. Distan
 3. Configure buffer: `setConfigureWorkout`
 4. Screen buffer (final, once): `setScreenState`
 
-The fixed-time sequence avoids `setIntervalType`, `setWorkoutIntervalCount`, and `setTargetPaceTime`; the workout type tells the PM5 how to interpret the duration.
+The fixed-time sequence avoids `setIntervalType`, `setWorkoutIntervalCount`, and `setTargetPaceTime`; the workout type tells the PM5 how to interpret the duration. Multi-interval time entries use `setIntervalType(time)` and encode their duration in hundredths of a second.
 
 ## PM5 troubleshooting signs
 

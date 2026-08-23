@@ -3,9 +3,7 @@
 		{
 			"path": "."
 		},
-		{
-			"path": "../pm5_feasibility_test"
-		}
+
 	],
 	"settings": {}
 }

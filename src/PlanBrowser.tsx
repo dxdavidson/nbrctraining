@@ -38,8 +38,8 @@ const blockColumns: Column<BlockRow>[] = [
 ]
 
 const workoutColumns: Column<WorkoutRow>[] = [
-  { key: 'workout_code', header: 'Workout Code', render: (w) => w.workout_code, sortValue: (w) => w.workout_code },
-  { key: 'week_commencing', header: 'Week Commencing', render: (w) => w.weekCommencingDisplay, sortValue: (w) => w.week_commencing },
+  { key: 'workout_code', header: 'Workout', render: (w) => w.workout_code, sortValue: (w) => w.workout_code },
+  { key: 'week_commencing', header: 'w/c', render: (w) => w.weekCommencingDisplay, sortValue: (w) => w.week_commencing },
   { key: 'sort_order', header: 'Order', render: (w) => w.sortOrderDisplay, sortValue: (w) => w.sort_order },
   { key: 'description', header: 'Description', render: (w) => w.description ?? '—' },
 ]
@@ -51,6 +51,21 @@ const intervalColumns: Column<IntervalRow>[] = [
   { key: 'recovery', header: 'Recovery', render: (i) => i.recoveryDisplay },
   { key: 'target', header: 'Target Pace', render: (i) => i.targetDisplay },
 ]
+
+function IntervalsTable({ intervals, estimated2kSeconds, loading }: { intervals: Interval[]; estimated2kSeconds: number | null; loading: boolean }) {
+  return (
+    <DataTable
+      caption="Intervals"
+      columns={intervalColumns}
+      rows={intervals.map((i) => toIntervalRow(i, estimated2kSeconds))}
+      getRowId={(i) => i.id}
+      selectedId={null}
+      onSelectRow={() => {}}
+      loading={loading}
+      emptyMessage="No intervals in this workout."
+    />
+  )
+}
 
 export default function PlanBrowser() {
   const [selection, setSelection] = useUrlSelection()
@@ -119,11 +134,11 @@ export default function PlanBrowser() {
   const selectedBlock = blocks.find((b) => b.id === blockId) ?? null
   const selectedWorkout = workouts.find((w) => w.id === workoutId) ?? null
 
-  // Depth of the current selection: 0 = Plans, 1 = Blocks, 2 = Workouts, 3 = Intervals.
-  const depth = workoutId ? 3 : blockId ? 2 : planId ? 1 : 0
+  // Depth of the current selection: 0 = Plans, 1 = Blocks, 2 = Workouts.
+  const depth = blockId ? 2 : planId ? 1 : 0
 
   const goBack = () => {
-    if (depth === 3) setSelection({ workoutId: null })
+    if (workoutId) setSelection({ workoutId: null })
     else if (depth === 2) setSelection({ blockId: null, workoutId: null })
     else if (depth === 1) setSelection({ planId: null, blockId: null, workoutId: null })
   }
@@ -169,25 +184,16 @@ export default function PlanBrowser() {
       getRowId={(w) => w.id}
       selectedId={workoutId}
       onSelectRow={(w) => setSelection({ workoutId: w.id })}
+      expandedRowId={workoutId}
+      renderExpandedRow={() => (
+        <IntervalsTable intervals={intervals} estimated2kSeconds={estimated2kSeconds} loading={loadingIntervals} />
+      )}
       loading={loadingWorkouts}
       emptyMessage="No workouts in this block."
     />
   )
 
-  const intervalsTable = (
-    <DataTable
-      caption="Intervals"
-      columns={intervalColumns}
-      rows={intervals.map((i) => toIntervalRow(i, estimated2kSeconds))}
-      getRowId={(i) => i.id}
-      selectedId={null}
-      onSelectRow={() => {}}
-      loading={loadingIntervals}
-      emptyMessage="No intervals in this workout."
-    />
-  )
-
-  const panesByDepth = [plansTable, blocksTable, workoutsTable, intervalsTable]
+  const panesByDepth = [plansTable, blocksTable, workoutsTable]
 
   return (
     <section className="plan-browser" aria-label="Training plan browser">
@@ -231,7 +237,7 @@ export default function PlanBrowser() {
 
       {isWide && (
         <div className="plan-browser-panes">
-          {depth > 0 && <div className="plan-browser-pane">{panesByDepth[depth - 1]}</div>}
+          {depth === 1 && <div className="plan-browser-pane">{panesByDepth[depth - 1]}</div>}
           <div className="plan-browser-pane">{panesByDepth[depth]}</div>
         </div>
       )}
