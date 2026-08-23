@@ -23,6 +23,7 @@ import {
   type Workout,
   type Interval,
 } from './api'
+import Pm5WorkoutSender from './Pm5WorkoutSender'
 import './PlanBrowser.css'
 
 const planColumns: Column<PlanRow>[] = [
@@ -233,6 +234,10 @@ export default function PlanBrowser() {
           {depth > 0 && <div className="plan-browser-pane">{panesByDepth[depth - 1]}</div>}
           <div className="plan-browser-pane">{panesByDepth[depth]}</div>
         </div>
+      )}
+
+      {selectedWorkout && (
+        <Pm5WorkoutSender workout={selectedWorkout} intervals={intervals} />
       )}
     </section>
   )
