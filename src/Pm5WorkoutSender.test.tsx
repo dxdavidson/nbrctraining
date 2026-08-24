@@ -12,6 +12,7 @@ describe('Pm5WorkoutSender', () => {
     week_commencing: null,
     description: 'Test workout',
     sort_order: 1,
+    level: null,
   }
 
   const intervals: Interval[] = [

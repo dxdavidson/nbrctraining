@@ -8,7 +8,7 @@ vi.mock('./api')
 
 const plan = { id: 'p1', plan_code: 'PC1', title: 'Plan One', start_date: null, published: true }
 const block = { id: 'b1', plan_id: 'p1', block_code: 'BC1', title: 'Block One', description: null, start_date: null }
-const workout = { id: 'w1', block_id: 'b1', workout_code: 'WC1', week_commencing: null, description: null, sort_order: 1 }
+const workout = { id: 'w1', block_id: 'b1', workout_code: 'WC1', week_commencing: null, description: null, sort_order: 1, level: null }
 const interval = {
   id: 'i1',
   workout_id: 'w1',
