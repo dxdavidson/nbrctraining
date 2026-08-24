@@ -22,6 +22,7 @@ erDiagram
 		date week_commencing
 		string description
 		int sort_order
+		string level
 	}
 	INTERVALS {
         uuid id PK
@@ -31,6 +32,7 @@ erDiagram
 		int repeat_count
 		string work_kind
 		int work_value
+		int spm
 		string recovery_kind
 		float recovery_value
 		string target_mode

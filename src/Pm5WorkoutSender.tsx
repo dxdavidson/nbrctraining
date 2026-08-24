@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
 import type { Interval, Workout } from './api'
+import { calculateWolverinePace, isWolverineLevel } from './wolverinePace'
 
 declare global {
   interface Window {
@@ -211,6 +212,14 @@ function getIntervalType(workKind: string | null): number {
 }
 
 function toTargetPaceHundredths(interval: Interval, estimated2kSeconds: number | null): number | null {
+  if (isWolverineLevel(interval.target_mode)) {
+    if (interval.spm == null || estimated2kSeconds == null) {
+      return null
+    }
+    const { seconds } = calculateWolverinePace(interval.target_mode, interval.spm, estimated2kSeconds / 4)
+    return Number.isFinite(seconds) ? Math.max(0, Math.round(seconds * 100)) : null
+  }
+
   if (interval.target_mode !== 'two_k_pace_offset_seconds' || interval.target_value == null || estimated2kSeconds == null) {
     return null
   }

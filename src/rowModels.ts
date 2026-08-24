@@ -1,5 +1,6 @@
 import formatDate from './formatDate'
 import type { Plan, Block, Workout, Interval } from './api'
+import { calculateWolverinePace, isWolverineLevel } from './wolverinePace'
 
 // Centralizes display-only derivations so column defs stay pure "which field goes where".
 
@@ -36,8 +37,8 @@ function formatMinutesSeconds(totalSeconds: number): string {
 }
 
 function formatWork(kind: string | null, value: number | null): string {
-  if (kind === 'time') return `Time ${value != null ? formatMinutesSeconds(value) : '—'}`
-  if (kind === 'distance') return `Distance ${value != null ? `${value}m` : '—'}`
+  if (kind === 'time') return value != null ? `${formatMinutesSeconds(value)}min` : '—'
+  if (kind === 'distance') return value != null ? `${value}m` : '—'
   return formatKindValue(kind, value)
 }
 
@@ -49,11 +50,17 @@ function formatRecovery(kind: string | null, secondsValue: number | null): strin
 }
 
 // two_k_pace_offset_seconds: target pace = (estimated 2K time / 4) + offset, shown per 500m.
-function formatTarget(mode: string | null, value: number | null, estimated2kSeconds: number | null): string {
+// L1-L4: Wolverine Plan levels; target pace is derived from spm and estimated 2K pace.
+function formatTarget(mode: string | null, value: number | null, estimated2kSeconds: number | null, spm: number | null): string {
   if (mode === 'two_k_pace_offset_seconds') {
     if (value == null || estimated2kSeconds == null) return '—'
     const targetPaceSeconds = estimated2kSeconds / 4 + value
-    return `${formatMinutesSeconds(targetPaceSeconds)}/500m`
+    return formatMinutesSeconds(targetPaceSeconds)
+  }
+  if (isWolverineLevel(mode)) {
+    if (spm == null || estimated2kSeconds == null) return '—'
+    const { seconds } = calculateWolverinePace(mode, spm, estimated2kSeconds / 4)
+    return formatMinutesSeconds(seconds)
   }
   return formatKindValue(mode, value)
 }
@@ -86,6 +93,6 @@ export function toIntervalRow(interval: Interval, estimated2kSeconds: number | n
     ...interval,
     workDisplay: formatWork(interval.work_kind, interval.work_value),
     recoveryDisplay: formatRecovery(interval.recovery_kind, interval.recovery_value),
-    targetDisplay: formatTarget(interval.target_mode, interval.target_value, estimated2kSeconds),
+    targetDisplay: formatTarget(interval.target_mode, interval.target_value, estimated2kSeconds, interval.spm),
   }
 }

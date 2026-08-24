@@ -22,6 +22,7 @@ export interface Workout {
   week_commencing: string | null
   description: string | null
   sort_order: number | null
+  level: string | null
 }
 
 export interface Interval {
@@ -32,6 +33,7 @@ export interface Interval {
   repeat_count: number
   work_kind: string | null
   work_value: number | null
+  spm: number | null
   recovery_kind: string | null
   recovery_value: number | null
   target_mode: string | null

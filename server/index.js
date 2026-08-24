@@ -64,7 +64,7 @@ app.get('/api/workouts', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      'SELECT id, block_id, workout_code, week_commencing, description, sort_order FROM workouts WHERE block_id = $1 ORDER BY sort_order NULLS LAST, week_commencing',
+      'SELECT id, block_id, workout_code, week_commencing, description, sort_order, level FROM workouts WHERE block_id = $1 ORDER BY sort_order NULLS LAST, week_commencing',
       [blockId]
     )
     res.json(rows)
@@ -82,7 +82,7 @@ app.get('/api/intervals', async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT id, workout_id, interval_code, interval_order, repeat_count,
-              work_kind, work_value, recovery_kind, recovery_value,
+              work_kind, work_value, spm, recovery_kind, recovery_value,
               target_mode, target_value
        FROM intervals WHERE workout_id = $1 ORDER BY interval_order`,
       [workoutId]

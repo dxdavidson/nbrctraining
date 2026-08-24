@@ -3,9 +3,10 @@ import './DataTable.css'
 
 export interface Column<Row> {
   key: string
-  header: string
+  header: React.ReactNode
   render: (row: Row) => React.ReactNode
   sortValue?: (row: Row) => string | number | null
+  width?: string
 }
 
 interface DataTableProps<Row> {
@@ -69,7 +70,7 @@ export default function DataTable<Row>({
             {columns.map((column) => {
               const isSorted = sort?.key === column.key
               return (
-                <th key={column.key} scope="col" aria-sort={isSorted ? (sort!.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <th key={column.key} scope="col" style={column.width ? { width: column.width } : undefined} aria-sort={isSorted ? (sort!.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   {column.sortValue ? (
                     <button
                       type="button"

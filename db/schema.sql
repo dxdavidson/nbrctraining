@@ -6,8 +6,10 @@ CREATE TABLE plans (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     plan_code   TEXT NOT NULL,
     title       TEXT NOT NULL,
+    description TEXT,
     start_date  DATE,
-    published   BOOLEAN NOT NULL DEFAULT FALSE
+    published   BOOLEAN NOT NULL DEFAULT FALSE,
+    description TEXT
 );
 
 CREATE TABLE blocks (
@@ -25,7 +27,8 @@ CREATE TABLE workouts (
     workout_code    TEXT NOT NULL,
     week_commencing DATE,
     description     TEXT,
-    sort_order      INTEGER
+    sort_order      INTEGER,
+    level           TEXT
 );
 
 CREATE TABLE intervals (
@@ -36,6 +39,7 @@ CREATE TABLE intervals (
     repeat_count    INTEGER NOT NULL,
     work_kind       TEXT,
     work_value      INTEGER,
+    spm             INTEGER,
     recovery_kind   TEXT,
     recovery_value  REAL,
     target_mode     TEXT,

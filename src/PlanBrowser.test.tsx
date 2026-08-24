@@ -17,6 +17,7 @@ const interval = {
   repeat_count: 1,
   work_kind: 'run',
   work_value: 400,
+  spm: null,
   recovery_kind: 'walk',
   recovery_value: 60,
   target_mode: 'pace',

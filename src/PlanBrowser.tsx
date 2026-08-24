@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import DataTable, { type Column } from './components/DataTable'
+import HeaderTooltip from './components/HeaderTooltip'
 import { useUrlSelection } from './hooks/useUrlSelection'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
@@ -38,18 +39,27 @@ const blockColumns: Column<BlockRow>[] = [
 ]
 
 const workoutColumns: Column<WorkoutRow>[] = [
-  { key: 'workout_code', header: 'Workout', render: (w) => w.workout_code, sortValue: (w) => w.workout_code },
   { key: 'week_commencing', header: 'w/c', render: (w) => w.weekCommencingDisplay, sortValue: (w) => w.week_commencing },
-  { key: 'sort_order', header: 'Order', render: (w) => w.sortOrderDisplay, sortValue: (w) => w.sort_order },
+  { key: 'workout_code', header: 'Workout', render: (w) => w.workout_code, sortValue: (w) => w.workout_code },
+  {
+    key: 'level',
+    header: (
+      <HeaderTooltip label="Intensity">
+        L1, L2, L3, L4 are Wolverine Plan intensity levels. (Placeholder text — to be refined.)
+      </HeaderTooltip>
+    ),
+    render: (w) => w.level ?? '—',
+  },
   { key: 'description', header: 'Description', render: (w) => w.description ?? '—' },
 ]
 
 const intervalColumns: Column<IntervalRow>[] = [
   { key: 'interval_order', header: '#', render: (i) => i.interval_order, sortValue: (i) => i.interval_order },
-  { key: 'repeat_count', header: 'Repeat', render: (i) => i.repeat_count, sortValue: (i) => i.repeat_count },
   { key: 'work', header: 'Work', render: (i) => i.workDisplay },
-  { key: 'recovery', header: 'Recovery', render: (i) => i.recoveryDisplay },
+  { key: 'spm', header: 'SPM', render: (i) => i.spm ?? '—', sortValue: (i) => i.spm, width: '5rem' },
   { key: 'target', header: 'Target Pace', render: (i) => i.targetDisplay },
+  { key: 'recovery', header: 'Recovery', render: (i) => i.recoveryDisplay },
+  { key: 'repeat_count', header: 'Repeat', render: (i) => i.repeat_count, sortValue: (i) => i.repeat_count },
 ]
 
 function IntervalsTable({ intervals, estimated2kSeconds, loading }: { intervals: Interval[]; estimated2kSeconds: number | null; loading: boolean }) {
@@ -180,7 +190,7 @@ export default function PlanBrowser() {
     <DataTable
       caption="Workouts"
       columns={workoutColumns}
-      rows={workouts.map(toWorkoutRow)}
+      rows={[...workouts].sort((a, b) => (a.sort_order ?? Infinity) - (b.sort_order ?? Infinity)).map(toWorkoutRow)}
       getRowId={(w) => w.id}
       selectedId={workoutId}
       onSelectRow={(w) => setSelection({ workoutId: w.id })}
