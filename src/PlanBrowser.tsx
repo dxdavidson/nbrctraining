@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import DataTable, { type Column } from './components/DataTable'
 import HeaderTooltip from './components/HeaderTooltip'
 import { useUrlSelection } from './hooks/useUrlSelection'
-import { useMediaQuery } from './hooks/useMediaQuery'
 import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
 import {
   toPlanRow,
@@ -45,7 +44,13 @@ const workoutColumns: Column<WorkoutRow>[] = [
     key: 'level',
     header: (
       <HeaderTooltip label="Intensity">
-        L1, L2, L3, L4 are Wolverine Plan intensity levels. (Placeholder text — to be refined.)
+        The Wolverine Plan categorizes training into four intensity levels, defined by energy systems, stroke rates, and target split paces derived from your baseline 2K performance.
+        <ul>
+          <li>L4: Low intensity, focusing on technique and endurance.</li>
+          <li>L3: Moderate intensity, balancing endurance and power.</li>
+          <li>L2: High intensity, emphasizing power and speed.</li>
+          <li>L1: Maximum intensity, targeting peak performance.</li>
+        </ul>
       </HeaderTooltip>
     ),
     render: (w) => w.level ?? '—',
@@ -79,7 +84,6 @@ function IntervalsTable({ intervals, estimated2kSeconds, loading }: { intervals:
 
 export default function PlanBrowser() {
   const [selection, setSelection] = useUrlSelection()
-  const isWide = useMediaQuery('(min-width: 900px)')
   const [estimated2kSeconds] = useEstimated2kSeconds()
 
   const [plans, setPlans] = useState<Plan[]>([])
@@ -144,47 +148,12 @@ export default function PlanBrowser() {
   const selectedBlock = blocks.find((b) => b.id === blockId) ?? null
   const selectedWorkout = workouts.find((w) => w.id === workoutId) ?? null
 
-  // Depth of the current selection: 0 = Plans, 1 = Blocks, 2 = Workouts.
-  const depth = blockId ? 2 : planId ? 1 : 0
-
-  const goBack = () => {
-    if (workoutId) setSelection({ workoutId: null })
-    else if (depth === 2) setSelection({ blockId: null, workoutId: null })
-    else if (depth === 1) setSelection({ planId: null, blockId: null, workoutId: null })
-  }
-
   const breadcrumbItems = [
     { label: 'Plans', onClick: () => setSelection({ planId: null, blockId: null, workoutId: null }) },
     selectedPlan && { label: selectedPlan.title, onClick: () => setSelection({ blockId: null, workoutId: null }) },
     selectedBlock && { label: selectedBlock.title, onClick: () => setSelection({ workoutId: null }) },
     selectedWorkout && { label: selectedWorkout.workout_code, onClick: undefined },
   ].filter((item): item is { label: string; onClick?: () => void } => Boolean(item))
-
-  const plansTable = (
-    <DataTable
-      caption="Plans"
-      columns={planColumns}
-      rows={plans.map(toPlanRow)}
-      getRowId={(p) => p.id}
-      selectedId={planId}
-      onSelectRow={(p) => setSelection({ planId: p.id, blockId: null, workoutId: null })}
-      loading={loadingPlans}
-      emptyMessage="No plans found."
-    />
-  )
-
-  const blocksTable = (
-    <DataTable
-      caption="Blocks"
-      columns={blockColumns}
-      rows={blocks.map(toBlockRow)}
-      getRowId={(b) => b.id}
-      selectedId={blockId}
-      onSelectRow={(b) => setSelection({ blockId: b.id, workoutId: null })}
-      loading={loadingBlocks}
-      emptyMessage="No blocks in this plan."
-    />
-  )
 
   const workoutsTable = (
     <DataTable
@@ -203,7 +172,35 @@ export default function PlanBrowser() {
     />
   )
 
-  const panesByDepth = [plansTable, blocksTable, workoutsTable]
+  const blocksTable = (
+    <DataTable
+      caption="Blocks"
+      columns={blockColumns}
+      rows={blocks.map(toBlockRow)}
+      getRowId={(b) => b.id}
+      selectedId={blockId}
+      onSelectRow={(b) => setSelection({ blockId: b.id, workoutId: null })}
+      expandedRowId={blockId}
+      renderExpandedRow={() => workoutsTable}
+      loading={loadingBlocks}
+      emptyMessage="No blocks in this plan."
+    />
+  )
+
+  const plansTable = (
+    <DataTable
+      caption="Plans"
+      columns={planColumns}
+      rows={plans.map(toPlanRow)}
+      getRowId={(p) => p.id}
+      selectedId={planId}
+      onSelectRow={(p) => setSelection({ planId: p.id, blockId: null, workoutId: null })}
+      expandedRowId={planId}
+      renderExpandedRow={() => blocksTable}
+      loading={loadingPlans}
+      emptyMessage="No plans found."
+    />
+  )
 
   return (
     <section className="plan-browser" aria-label="Training plan browser">
@@ -234,23 +231,7 @@ export default function PlanBrowser() {
         </ol>
       </nav>
 
-      {!isWide && (
-        <>
-          {depth > 0 && (
-            <button type="button" className="plan-browser-back" onClick={goBack}>
-              ← Back
-            </button>
-          )}
-          {panesByDepth[depth]}
-        </>
-      )}
-
-      {isWide && (
-        <div className="plan-browser-panes">
-          {depth === 1 && <div className="plan-browser-pane">{panesByDepth[depth - 1]}</div>}
-          <div className="plan-browser-pane">{panesByDepth[depth]}</div>
-        </div>
-      )}
+      {plansTable}
 
       {selectedWorkout && (
         <Pm5WorkoutSender workout={selectedWorkout} intervals={intervals} />

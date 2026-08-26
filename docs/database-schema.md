@@ -6,6 +6,7 @@ erDiagram
 		string title
 		date start_date
 		boolean published
+		string description
 	}
 	BLOCKS {
 		uuid id PK
@@ -14,6 +15,7 @@ erDiagram
 		string title
 		string description
 		date start_date
+		boolean published
 	}
 	WORKOUTS {
         uuid id PK

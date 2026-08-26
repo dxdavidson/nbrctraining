@@ -18,7 +18,8 @@ CREATE TABLE blocks (
     block_code  TEXT NOT NULL,
     title       TEXT NOT NULL,
     description TEXT,
-    start_date  DATE
+    start_date  DATE,
+    published   BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE workouts (

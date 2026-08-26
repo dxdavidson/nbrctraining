@@ -68,7 +68,7 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
     expect(new URLSearchParams(window.location.search).get('workoutId')).toBe('w1')
   })
 
-  it('navigates back one level at a time and clears deeper selection state', async () => {
+  it('keeps parent tables visible while drilling down', async () => {
     const user = userEvent.setup()
     render(<PlanBrowser />)
 
@@ -77,14 +77,8 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
     const blocksTable = await screen.findByRole('table', { name: 'Blocks' })
     await user.click(within(blocksTable).getByText('Block One'))
     expect(await screen.findByRole('table', { name: 'Workouts' })).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: '← Back' }))
-    expect(await screen.findByRole('table', { name: 'Blocks' })).toBeInTheDocument()
-    expect(new URLSearchParams(window.location.search).get('blockId')).toBeNull()
-
-    await user.click(screen.getByRole('button', { name: '← Back' }))
-    expect(await screen.findByRole('table', { name: 'Plans' })).toBeInTheDocument()
-    expect(new URLSearchParams(window.location.search).get('planId')).toBeNull()
+    expect(screen.getByRole('table', { name: 'Plans' })).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Blocks' })).toBeInTheDocument()
   })
 
   it('restores the drill-down state from URL query params on load (deep link)', async () => {
@@ -116,7 +110,7 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
 })
 
 describe('PlanBrowser master-detail layout (wide screens)', () => {
-  it('shows the parent and child tables side by side without a Back button', async () => {
+  it('shows nested parent and child tables without a Back button', async () => {
     mockMatchMedia(true)
     const user = userEvent.setup()
     render(<PlanBrowser />)
@@ -127,7 +121,7 @@ describe('PlanBrowser master-detail layout (wide screens)', () => {
     expect(await screen.findByRole('table', { name: 'Plans' })).toBeInTheDocument()
     expect(await screen.findByRole('table', { name: 'Blocks' })).toBeInTheDocument()
     await user.click(within(screen.getByRole('table', { name: 'Blocks' })).getByText('Block One'))
-    expect(screen.queryByRole('table', { name: 'Blocks' })).not.toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Blocks' })).toBeInTheDocument()
     expect(await screen.findByRole('table', { name: 'Workouts' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '← Back' })).not.toBeInTheDocument()
   })

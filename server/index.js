@@ -31,7 +31,7 @@ function parseUuidQueryParam(res, value, name) {
 app.get('/api/plans', async (_req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, plan_code, title, start_date, published FROM plans ORDER BY title'
+      'SELECT id, plan_code, title, start_date, published FROM plans WHERE published = TRUE ORDER BY title'
     )
     res.json(rows)
   } catch (err) {
@@ -47,7 +47,11 @@ app.get('/api/blocks', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      'SELECT id, plan_id, block_code, title, description, start_date FROM blocks WHERE plan_id = $1 ORDER BY start_date NULLS LAST, title',
+      `SELECT b.id, b.plan_id, b.block_code, b.title, b.description, b.start_date
+       FROM blocks b
+       JOIN plans p ON p.id = b.plan_id
+       WHERE b.plan_id = $1 AND b.published = TRUE AND p.published = TRUE
+       ORDER BY b.start_date NULLS LAST, b.title`,
       [planId]
     )
     res.json(rows)
