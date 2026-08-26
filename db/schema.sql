@@ -9,7 +9,7 @@ CREATE TABLE plans (
     description TEXT,
     start_date  DATE,
     published   BOOLEAN NOT NULL DEFAULT FALSE,
-    description TEXT
+    CONSTRAINT uq_plans_plan_code UNIQUE (plan_code)
 );
 
 CREATE TABLE blocks (
@@ -19,7 +19,8 @@ CREATE TABLE blocks (
     title       TEXT NOT NULL,
     description TEXT,
     start_date  DATE,
-    published   BOOLEAN NOT NULL DEFAULT FALSE
+    published   BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT uq_blocks_plan_id_block_code UNIQUE (plan_id, block_code)
 );
 
 CREATE TABLE workouts (
@@ -29,7 +30,8 @@ CREATE TABLE workouts (
     week_commencing DATE,
     description     TEXT,
     sort_order      INTEGER,
-    level           TEXT
+    level           TEXT,
+    CONSTRAINT uq_workouts_block_id_workout_code UNIQUE (block_id, workout_code)
 );
 
 CREATE TABLE intervals (
@@ -44,7 +46,9 @@ CREATE TABLE intervals (
     recovery_kind   TEXT,
     recovery_value  REAL,
     target_mode     TEXT,
-    target_value    REAL
+    target_value    REAL,
+    CONSTRAINT uq_intervals_workout_id_interval_code UNIQUE (workout_id, interval_code),
+    CONSTRAINT uq_intervals_workout_id_interval_order UNIQUE (workout_id, interval_order)
 );
 
 CREATE INDEX idx_blocks_plan_id ON blocks (plan_id);
