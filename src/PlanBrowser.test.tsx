@@ -6,7 +6,7 @@ import * as api from './api'
 
 vi.mock('./api')
 
-const plan = { id: 'p1', plan_code: 'PC1', title: 'Plan One', start_date: null, published: true }
+const plan = { id: 'p1', plan_code: 'PC1', title: 'Plan One', description: null, start_date: null, published: true }
 const block = { id: 'b1', plan_id: 'p1', block_code: 'BC1', title: 'Block One', description: null, start_date: null }
 const workout = { id: 'w1', block_id: 'b1', workout_code: 'WC1', week_commencing: null, description: null, sort_order: 1, level: null }
 const interval = {
@@ -106,6 +106,18 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
 
     expect(new URLSearchParams(window.location.search).get('diagnostics')).toBe('1')
     expect(await screen.findByRole('table', { name: 'Intervals' })).toBeInTheDocument()
+  })
+
+  it('only enables the plan description link when the plan has content', async () => {
+    const describedPlan = { ...plan, description: '# Plan details' }
+    vi.mocked(api.fetchPlans).mockResolvedValueOnce([describedPlan])
+    render(<PlanBrowser />)
+
+    const plansTable = await screen.findByRole('table', { name: 'Plans' })
+    expect(within(plansTable).getByRole('link', { name: 'View plan' })).toHaveAttribute(
+      'href',
+      '/plans/p1?from=%2F'
+    )
   })
 })
 

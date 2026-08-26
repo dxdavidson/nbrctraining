@@ -45,6 +45,37 @@ function parseCsvLine(line) {
   return values
 }
 
+function splitCsvRecords(csvText) {
+  const records = []
+  let record = ''
+  let quoted = false
+
+  for (let index = 0; index < csvText.length; index += 1) {
+    const character = csvText[index]
+    const nextCharacter = csvText[index + 1]
+
+    if (character === '"' && quoted && nextCharacter === '"') {
+      record += '""'
+      index += 1
+    } else if (character === '"') {
+      quoted = !quoted
+      record += character
+    } else if ((character === '\n' || character === '\r') && !quoted) {
+      if (record.trim() !== '') records.push(record)
+      record = ''
+      if (character === '\r' && nextCharacter === '\n') index += 1
+    } else {
+      record += character
+    }
+  }
+
+  if (quoted) {
+    throw new Error('CSV contains an unterminated quoted field.')
+  }
+  if (record.trim() !== '') records.push(record)
+  return records
+}
+
 function clean(value) {
   const trimmed = value.trim()
   return trimmed === '' ? null : trimmed
@@ -64,7 +95,7 @@ export function parseWorkoutCsv(csvText) {
     throw new Error('CSV file is empty.')
   }
 
-  const lines = csvText.replace(/^\uFEFF/, '').split(/\r?\n/).filter((line) => line.trim() !== '')
+  const lines = splitCsvRecords(csvText.replace(/^\uFEFF/, ''))
   const headers = parseCsvLine(lines[0]).map((header) => header.trim())
   const missingColumns = REQUIRED_COLUMNS.filter((column) => !headers.includes(column))
   if (missingColumns.length > 0) {

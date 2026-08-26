@@ -41,7 +41,7 @@ export function calculateWolverinePace(level: WolverineLevel, spm: number, secon
       break
     }
     case 'L2': {
-      const offset = 2 + ((spm - 24) / (28 - 24)) * 2 // maps 24-28 spm to +2s to +4s
+      const offset = 4 - ((spm - 24) / (28 - 24)) * 2 // maps 24-28 spm to +4s to +2s
       seconds = seconds2k + Math.max(2, Math.min(4, offset))
       watts = wattsFromSecondsPer500m(seconds)
       break

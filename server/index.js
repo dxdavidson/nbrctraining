@@ -31,6 +31,18 @@ function hasValidImportToken(request) {
   return configuredBytes.length === suppliedBytes.length && timingSafeEqual(configuredBytes, suppliedBytes)
 }
 
+function requireImportToken(req, res) {
+  if (!process.env.IMPORT_TOKEN) {
+    res.status(503).json({ error: 'CSV import is not configured on the server.' })
+    return false
+  }
+  if (!hasValidImportToken(req)) {
+    res.status(401).json({ error: 'Invalid import token.' })
+    return false
+  }
+  return true
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 function parseUuidQueryParam(res, value, name) {
   if (value === undefined) return null
@@ -44,7 +56,7 @@ function parseUuidQueryParam(res, value, name) {
 app.get('/api/plans', async (_req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, plan_code, title, start_date, published FROM plans WHERE published = TRUE ORDER BY title'
+      'SELECT id, plan_code, title, description, start_date, published FROM plans WHERE published = TRUE ORDER BY title'
     )
     res.json(rows)
   } catch (err) {
@@ -112,12 +124,7 @@ app.get('/api/intervals', async (req, res) => {
 })
 
 app.post('/api/admin/import/workouts', async (req, res) => {
-  if (!process.env.IMPORT_TOKEN) {
-    return res.status(503).json({ error: 'CSV import is not configured on the server.' })
-  }
-  if (!hasValidImportToken(req)) {
-    return res.status(401).json({ error: 'Invalid import token.' })
-  }
+  if (!requireImportToken(req, res)) return
   if (typeof req.body !== 'string') {
     return res.status(400).json({ error: 'Send the CSV as a text request body.' })
   }
@@ -131,9 +138,11 @@ app.post('/api/admin/import/workouts', async (req, res) => {
 
   const client = await pool.connect()
   const dryRun = req.query.dry_run === 'true'
+  const deleteExistingBlocks = req.query.delete_existing_blocks === 'true'
   try {
     await client.query('BEGIN')
     const workoutGroups = groupWorkouts(rows)
+    const blockIds = new Map()
 
     for (const group of workoutGroups) {
       const { rows: planRows } = await client.query('SELECT id FROM plans WHERE plan_code = $1', [group.workout.plan_code])
@@ -148,13 +157,29 @@ app.post('/api/admin/import/workouts', async (req, res) => {
       if (blockRows.length === 0) {
         throw new Error(`Block ${group.workout.block_code} was not found in plan ${group.workout.plan_code}.`)
       }
+      blockIds.set(`${group.workout.plan_code}\u0000${group.workout.block_code}`, blockRows[0].id)
+    }
+
+    let deletedWorkouts = 0
+    if (deleteExistingBlocks) {
+      for (const blockId of blockIds.values()) {
+        const { rows: deletedRows } = await client.query(
+          'DELETE FROM workouts WHERE block_id = $1 RETURNING id',
+          [blockId]
+        )
+        deletedWorkouts += deletedRows.length
+      }
+    }
+
+    for (const group of workoutGroups) {
+      const blockId = blockIds.get(`${group.workout.plan_code}\u0000${group.workout.block_code}`)
 
       const { rows: workoutRows } = await client.query(
         `INSERT INTO workouts (block_id, workout_code, week_commencing, description, sort_order, level)
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING id`,
         [
-          blockRows[0].id,
+          blockId,
           group.workout.workout_code,
           group.workout.week_commencing,
           group.workout.description,
@@ -185,6 +210,7 @@ app.post('/api/admin/import/workouts', async (req, res) => {
           ]
         )
       }
+
     }
 
     if (dryRun) {
@@ -195,10 +221,24 @@ app.post('/api/admin/import/workouts', async (req, res) => {
 
     return res.json({
       dry_run: dryRun,
+      delete_existing_blocks: deleteExistingBlocks,
       rows: rows.length,
       workouts: workoutGroups.length,
       intervals: rows.length,
-      message: dryRun ? 'CSV is valid. No changes were saved.' : 'CSV imported successfully.',
+      deleted_workouts: deletedWorkouts,
+      imported_workouts: dryRun ? [] : workoutGroups.map((group) => ({
+        plan_code: group.workout.plan_code,
+        block_code: group.workout.block_code,
+        workout_code: group.workout.workout_code,
+        interval_count: group.intervals.length,
+      })),
+      message: dryRun
+        ? deleteExistingBlocks
+          ? `CSV is valid. ${deletedWorkouts} existing workout(s) in the referenced block(s) would be deleted. No changes were saved.`
+          : 'CSV is valid. No changes were saved.'
+        : deleteExistingBlocks
+          ? `CSV imported successfully. Deleted ${deletedWorkouts} existing workout(s) in the referenced block(s).`
+          : 'CSV imported successfully.',
     })
   } catch (err) {
     await client.query('ROLLBACK')

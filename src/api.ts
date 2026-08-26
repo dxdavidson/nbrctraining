@@ -2,6 +2,7 @@ export interface Plan {
   id: string
   plan_code: string
   title: string
+  description: string | null
   start_date: string | null
   published: boolean
 }

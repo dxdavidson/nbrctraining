@@ -89,6 +89,51 @@
   color: #b42318;
 }
 
+.admin-import-history {
+  margin-top: 3rem;
+}
+
+.admin-import-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-import-history h2 {
+  margin: 0;
+}
+
+.admin-import-history-header button {
+  padding: 0.5rem 0.75rem;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.admin-import-history-table-wrapper {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.admin-import-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.admin-import-history-table th,
+.admin-import-history-table td {
+  padding: 0.65rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.admin-import-history-table th {
+  color: var(--text-h);
+  font-size: 0.85rem;
+}
+
 @media (max-width: 600px) {
   .admin-import {
     padding: 2rem 0;

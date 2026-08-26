@@ -45,7 +45,9 @@ The private importer is available at `/admin/import`. It is not linked from the 
 
 The importer accepts the flat CSV format stored in `data/imports/workouts/`, with one row per interval and repeated workout columns. Plans and blocks must already exist, identified by `plan_code` and `block_code`. The server creates each workout and then its intervals in one PostgreSQL transaction.
 
-Use **Validate CSV** first. This performs the complete import inside a transaction and rolls it back. Uncheck **Validate only (dry run)** only after validation succeeds. The endpoint is `POST /api/admin/import/workouts?dry_run=true` and expects the CSV as `text/csv` with the token in the `X-Import-Token` header.
+Successful imports are shown in the **Imported workouts** section of the admin page. This log is held in browser memory only; it is cleared when the page is refreshed or closed. Dry runs are not recorded.
+
+Use **Analyse CSV** first. This performs the complete import inside a transaction and rolls it back. If **Delete existing workouts for CSV blocks before import** is checked, analysis reports how many existing workouts in the CSV-referenced blocks would be deleted. Uncheck **Analyse only (dry run)** only after analysis succeeds. Deletion is limited to the referenced `(plan_code, block_code)` pairs; other blocks are not affected. The endpoint is `POST /api/admin/import/workouts?dry_run=true` and expects the CSV as `text/csv` with the token in the `X-Import-Token` header. Add `delete_existing_blocks=true` to enable the scoped deletion option.
 
 ## Run Locally
 

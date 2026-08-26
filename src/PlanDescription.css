@@ -1,0 +1,67 @@
+.plan-description-page {
+  width: min(48rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+  text-align: left;
+}
+
+.plan-description-back {
+  display: inline-block;
+  margin-bottom: 3rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.plan-description {
+  color: var(--text);
+}
+
+.plan-description-kicker {
+  margin-bottom: 0.5rem;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.plan-description h1 {
+  margin: 0 0 2rem;
+  line-height: 1.1;
+}
+
+.plan-description h2,
+.plan-description h3,
+.plan-description h4 {
+  margin-top: 2rem;
+}
+
+.plan-description p,
+.plan-description ul,
+.plan-description ol,
+.plan-description blockquote,
+.plan-description table {
+  margin: 1rem 0;
+}
+
+.plan-description blockquote {
+  margin-left: 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--accent);
+}
+
+.plan-description table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.plan-description th,
+.plan-description td {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.plan-description-error {
+  color: #b42318;
+}

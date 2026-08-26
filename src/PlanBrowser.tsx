@@ -29,6 +29,20 @@ import './PlanBrowser.css'
 const planColumns: Column<PlanRow>[] = [
   { key: 'title', header: 'Title', render: (p) => p.title, sortValue: (p) => p.title },
   { key: 'start_date', header: 'Start Date', render: (p) => p.startDateDisplay, sortValue: (p) => p.start_date },
+  {
+    key: 'description_link',
+    header: 'Plan Description',
+    render: (p) => {
+      if (!p.description?.trim()) return <span className="plan-description-unavailable">Not available</span>
+      const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
+      const href = `/plans/${encodeURIComponent(p.id)}?from=${encodeURIComponent(returnUrl)}`
+      return (
+        <a href={href} onClick={(event) => event.stopPropagation()}>
+          View plan
+        </a>
+      )
+    },
+  },
 ]
 
 const blockColumns: Column<BlockRow>[] = [
