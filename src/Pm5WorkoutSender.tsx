@@ -430,6 +430,11 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
       }
 
       setStatus('Workout sent. Check the PM5 and press the PM5 button to begin.')
+      try {
+        pm5.disconnect()
+      } catch (disconnectError) {
+        setCommandLog((previous) => appendCommandHistory(previous, `[error] Error during disconnect: ${disconnectError instanceof Error ? disconnectError.message : String(disconnectError)}`))
+      }
     } catch (caughtError) {
       const message = caughtError instanceof Error ? caughtError.message : String(caughtError)
       const stack = caughtError instanceof Error ? caughtError.stack : ''

@@ -149,7 +149,7 @@ describe('Pm5WorkoutSender', () => {
     const connectButton = screen.getByRole('button', { name: /connect pm5/i })
     await user.click(connectButton)
 
-    const sendButton = screen.getByRole('button', { name: 'Send workout to PM5', exact: true })
+    const sendButton = screen.getByRole('button', { name: /^Send workout to PM5$/i })
     expect(sendButton).toBeEnabled()
     await user.click(sendButton)
 
@@ -161,6 +161,7 @@ describe('Pm5WorkoutSender', () => {
     expect(screen.getByText(/Time-based interval/i)).toBeInTheDocument()
     expect(screen.getByText(/fixedTimeInterval.*duration=300s/i)).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent(/workout sent/i)
+    expect(instance.disconnect).toHaveBeenCalledTimes(1)
   })
 
   it('sends the correct command order for a 5-minute time-based interval', async () => {
@@ -187,7 +188,7 @@ describe('Pm5WorkoutSender', () => {
     const connectButton = screen.getByRole('button', { name: /connect pm5/i })
     await user.click(connectButton)
 
-    const sendButton = screen.getByRole('button', { name: 'Send workout to PM5', exact: true })
+    const sendButton = screen.getByRole('button', { name: /^Send workout to PM5$/i })
     expect(sendButton).toBeEnabled()
 
     await user.click(sendButton)
@@ -228,7 +229,7 @@ describe('Pm5WorkoutSender', () => {
     const user = userEvent.setup()
     render(<Pm5WorkoutSender workout={workout} intervals={mixedIntervals} />)
     await user.click(screen.getByRole('button', { name: /connect pm5/i }))
-    await user.click(screen.getByRole('button', { name: 'Send workout to PM5', exact: true }))
+    await user.click(screen.getByRole('button', { name: /^Send workout to PM5$/i }))
 
     const pm5Monitor = (window as typeof window & { ergometer?: any }).ergometer.PerformanceMonitorBle
     const instance = new pm5Monitor()
@@ -248,7 +249,7 @@ describe('Pm5WorkoutSender', () => {
     const connectButton = screen.getByRole('button', { name: /connect pm5/i })
     await user.click(connectButton)
 
-    const sendButton = screen.getByRole('button', { name: 'Send workout to PM5', exact: true })
+    const sendButton = screen.getByRole('button', { name: /^Send workout to PM5$/i })
     expect(sendButton).toBeEnabled()
 
     await user.click(sendButton)
