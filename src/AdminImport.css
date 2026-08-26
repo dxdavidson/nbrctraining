@@ -1,0 +1,96 @@
+.admin-import {
+  width: min(40rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 4rem 0;
+  text-align: left;
+}
+
+.admin-import-kicker {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-import h1 {
+  margin: 0.5rem 0 1rem;
+  font-size: clamp(2.25rem, 7vw, 4rem);
+  line-height: 1;
+}
+
+.admin-import-intro {
+  max-width: 34rem;
+  margin-bottom: 2rem;
+}
+
+.admin-import form {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--social-bg);
+}
+
+.admin-import label {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.admin-import input[type='password'] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+}
+
+.admin-import-checkbox {
+  display: flex !important;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.5rem !important;
+}
+
+.admin-import button {
+  justify-self: start;
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.admin-import button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-import-file,
+.admin-import-status,
+.admin-import-error {
+  margin-top: 1rem;
+}
+
+.admin-import-status {
+  color: #18794e;
+}
+
+.admin-import-error {
+  color: #b42318;
+}
+
+@media (max-width: 600px) {
+  .admin-import {
+    padding: 2rem 0;
+  }
+}

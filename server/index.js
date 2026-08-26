@@ -1,6 +1,8 @@
 import express from 'express'
 import cors from 'cors'
+import { timingSafeEqual } from 'node:crypto'
 import { pool } from './db.js'
+import { groupWorkouts, parseWorkoutCsv } from './csvImport.js'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -17,6 +19,17 @@ app.use(
     origin: allowedOrigins.length > 0 ? allowedOrigins : true,
   })
 )
+app.use(express.text({ type: ['text/csv', 'text/plain'], limit: '2mb' }))
+
+function hasValidImportToken(request) {
+  const configuredToken = process.env.IMPORT_TOKEN
+  const suppliedToken = request.get('x-import-token')
+  if (!configuredToken || !suppliedToken) return false
+
+  const configuredBytes = Buffer.from(configuredToken)
+  const suppliedBytes = Buffer.from(suppliedToken)
+  return configuredBytes.length === suppliedBytes.length && timingSafeEqual(configuredBytes, suppliedBytes)
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 function parseUuidQueryParam(res, value, name) {
@@ -95,6 +108,104 @@ app.get('/api/intervals', async (req, res) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Failed to fetch intervals' })
+  }
+})
+
+app.post('/api/admin/import/workouts', async (req, res) => {
+  if (!process.env.IMPORT_TOKEN) {
+    return res.status(503).json({ error: 'CSV import is not configured on the server.' })
+  }
+  if (!hasValidImportToken(req)) {
+    return res.status(401).json({ error: 'Invalid import token.' })
+  }
+  if (typeof req.body !== 'string') {
+    return res.status(400).json({ error: 'Send the CSV as a text request body.' })
+  }
+
+  let rows
+  try {
+    rows = parseWorkoutCsv(req.body)
+  } catch (err) {
+    return res.status(400).json({ error: err.message })
+  }
+
+  const client = await pool.connect()
+  const dryRun = req.query.dry_run === 'true'
+  try {
+    await client.query('BEGIN')
+    const workoutGroups = groupWorkouts(rows)
+
+    for (const group of workoutGroups) {
+      const { rows: planRows } = await client.query('SELECT id FROM plans WHERE plan_code = $1', [group.workout.plan_code])
+      if (planRows.length === 0) {
+        throw new Error(`Plan ${group.workout.plan_code} was not found.`)
+      }
+
+      const { rows: blockRows } = await client.query(
+        'SELECT id FROM blocks WHERE plan_id = $1 AND block_code = $2',
+        [planRows[0].id, group.workout.block_code]
+      )
+      if (blockRows.length === 0) {
+        throw new Error(`Block ${group.workout.block_code} was not found in plan ${group.workout.plan_code}.`)
+      }
+
+      const { rows: workoutRows } = await client.query(
+        `INSERT INTO workouts (block_id, workout_code, week_commencing, description, sort_order, level)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id`,
+        [
+          blockRows[0].id,
+          group.workout.workout_code,
+          group.workout.week_commencing,
+          group.workout.description,
+          group.workout.sort_order,
+          group.workout.level,
+        ]
+      )
+      const workoutId = workoutRows[0].id
+
+      for (const interval of group.intervals) {
+        await client.query(
+          `INSERT INTO intervals (
+             workout_id, interval_code, interval_order, repeat_count, work_kind, work_value,
+             spm, recovery_kind, recovery_value, target_mode, target_value
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          [
+            workoutId,
+            interval.interval_code,
+            interval.interval_order,
+            interval.repeat_count,
+            interval.work_kind,
+            interval.work_value,
+            interval.spm,
+            interval.recovery_kind,
+            interval.recovery_value,
+            interval.target_mode,
+            interval.target_value,
+          ]
+        )
+      }
+    }
+
+    if (dryRun) {
+      await client.query('ROLLBACK')
+    } else {
+      await client.query('COMMIT')
+    }
+
+    return res.json({
+      dry_run: dryRun,
+      rows: rows.length,
+      workouts: workoutGroups.length,
+      intervals: rows.length,
+      message: dryRun ? 'CSV is valid. No changes were saved.' : 'CSV imported successfully.',
+    })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    const status = err.code === '23505' ? 409 : err.message.includes('was not found') ? 404 : 400
+    return res.status(status).json({ error: status === 409 ? 'A workout or interval already exists.' : err.message })
+  } finally {
+    client.release()
   }
 })
 
