@@ -149,7 +149,7 @@ describe('Pm5WorkoutSender', () => {
     const connectButton = screen.getByRole('button', { name: /connect pm5/i })
     await user.click(connectButton)
 
-    const sendButton = screen.getByRole('button', { name: /send workout to pm5/i })
+    const sendButton = screen.getByRole('button', { name: 'Send workout to PM5', exact: true })
     expect(sendButton).toBeEnabled()
     await user.click(sendButton)
 
@@ -187,7 +187,7 @@ describe('Pm5WorkoutSender', () => {
     const connectButton = screen.getByRole('button', { name: /connect pm5/i })
     await user.click(connectButton)
 
-    const sendButton = screen.getByRole('button', { name: /send workout to pm5/i })
+    const sendButton = screen.getByRole('button', { name: 'Send workout to PM5', exact: true })
     expect(sendButton).toBeEnabled()
 
     await user.click(sendButton)
@@ -228,7 +228,7 @@ describe('Pm5WorkoutSender', () => {
     const user = userEvent.setup()
     render(<Pm5WorkoutSender workout={workout} intervals={mixedIntervals} />)
     await user.click(screen.getByRole('button', { name: /connect pm5/i }))
-    await user.click(screen.getByRole('button', { name: /send workout to pm5/i }))
+    await user.click(screen.getByRole('button', { name: 'Send workout to PM5', exact: true }))
 
     const pm5Monitor = (window as typeof window & { ergometer?: any }).ergometer.PerformanceMonitorBle
     const instance = new pm5Monitor()
@@ -248,7 +248,7 @@ describe('Pm5WorkoutSender', () => {
     const connectButton = screen.getByRole('button', { name: /connect pm5/i })
     await user.click(connectButton)
 
-    const sendButton = screen.getByRole('button', { name: /send workout to pm5/i })
+    const sendButton = screen.getByRole('button', { name: 'Send workout to PM5', exact: true })
     expect(sendButton).toBeEnabled()
 
     await user.click(sendButton)

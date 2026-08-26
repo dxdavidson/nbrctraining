@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
 import type { Interval, Workout } from './api'
 import { calculateWolverinePace, isWolverineLevel } from './wolverinePace'
+import HeaderTooltip from './components/HeaderTooltip'
 
 declare global {
   interface Window {
@@ -456,7 +457,11 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
 
   return (
     <section className="pm5-workout-sender" aria-label="PM5 workout sender">
-      <h3>Send workout to PM5</h3>
+      <h3>
+        <HeaderTooltip label="Send workout to PM5 (Android only)">
+          Sending workouts to a PM5 currently works on Android devices only. Apple devices are not supported.
+        </HeaderTooltip>
+      </h3>
       <p className="pm5-workout-sender-summary">
         {workout.workout_code} · {orderedIntervals.length} interval{orderedIntervals.length === 1 ? '' : 's'}
       </p>
