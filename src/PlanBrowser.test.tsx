@@ -114,7 +114,7 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
     render(<PlanBrowser />)
 
     const plansTable = await screen.findByRole('table', { name: 'Plans' })
-    expect(within(plansTable).getByRole('link', { name: 'View plan' })).toHaveAttribute(
+    expect(within(plansTable).getByRole('link', { name: 'Plan Description' })).toHaveAttribute(
       'href',
       '/plans/p1?from=%2F'
     )

@@ -4,12 +4,13 @@ export interface Selection {
   planId: string | null
   blockId: string | null
   workoutId: string | null
+  week: string | null
 }
 
-const PARAM_NAMES = ['planId', 'blockId', 'workoutId'] as const
+const PARAM_NAMES = ['planId', 'blockId', 'workoutId', 'week'] as const
 
 let cachedSearch: string | null = null
-let cachedSelection: Selection = { planId: null, blockId: null, workoutId: null }
+let cachedSelection: Selection = { planId: null, blockId: null, workoutId: null, week: null }
 
 function readSelection(): Selection {
   const search = window.location.search
@@ -21,6 +22,7 @@ function readSelection(): Selection {
     planId: params.get('planId'),
     blockId: params.get('blockId'),
     workoutId: params.get('workoutId'),
+    week: params.get('week'),
   }
   return cachedSelection
 }
@@ -48,6 +50,7 @@ export function useUrlSelection() {
       planId: params.get('planId'),
       blockId: params.get('blockId'),
       workoutId: params.get('workoutId'),
+      week: params.get('week'),
       ...next,
     }
 

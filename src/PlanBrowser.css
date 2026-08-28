@@ -21,6 +21,25 @@
   color: var(--accent);
 }
 
+.plan-browser-week-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 0.5rem;
+}
+
+.plan-browser-week-picker select {
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  min-height: 44px;
+}
+
 .plan-browser-breadcrumb ol {
   display: flex;
   flex-wrap: wrap;

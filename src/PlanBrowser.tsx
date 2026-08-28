@@ -3,6 +3,7 @@ import DataTable, { type Column } from './components/DataTable'
 import HeaderTooltip from './components/HeaderTooltip'
 import { useUrlSelection } from './hooks/useUrlSelection'
 import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
+import formatDate from './formatDate'
 import {
   toPlanRow,
   toBlockRow,
@@ -139,6 +140,14 @@ function IntervalsTable({ intervals, estimated2kSeconds, loading }: { intervals:
   )
 }
 
+// Picks the week containing today, or the earliest future week if none has started yet.
+function findCurrentWeek(sortedWeeks: string[]): string | null {
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const pastOrCurrent = sortedWeeks.filter((w) => w <= todayIso)
+  if (pastOrCurrent.length > 0) return pastOrCurrent[pastOrCurrent.length - 1]
+  return sortedWeeks[0] ?? null
+}
+
 export default function PlanBrowser() {
   const [selection, setSelection] = useUrlSelection()
   const [estimated2kSeconds] = useEstimated2kSeconds()
@@ -155,7 +164,7 @@ export default function PlanBrowser() {
 
   const [error, setError] = useState<string | null>(null)
 
-  const { planId, blockId, workoutId } = selection
+  const { planId, blockId, workoutId, week } = selection
 
   useEffect(() => {
     setLoadingPlans(true)
@@ -206,33 +215,56 @@ export default function PlanBrowser() {
   const selectedWorkout = workouts.find((w) => w.id === workoutId) ?? null
 
   const breadcrumbItems = [
-    { label: 'Plans', onClick: () => setSelection({ planId: null, blockId: null, workoutId: null }) },
-    selectedPlan && { label: selectedPlan.title, onClick: () => setSelection({ blockId: null, workoutId: null }) },
+    { label: 'Plans', onClick: () => setSelection({ planId: null, blockId: null, workoutId: null, week: null }) },
+    selectedPlan && { label: selectedPlan.title, onClick: () => setSelection({ blockId: null, workoutId: null, week: null }) },
     selectedBlock && { label: selectedBlock.title, onClick: () => setSelection({ workoutId: null }) },
     selectedWorkout && { label: selectedWorkout.workout_code, onClick: undefined },
   ].filter((item): item is { label: string; onClick?: () => void } => Boolean(item))
 
+  const sortedWorkouts = [...workouts].sort((a, b) => {
+    const weekCompare = (a.week_commencing ?? '').localeCompare(b.week_commencing ?? '')
+    if (weekCompare !== 0) return weekCompare
+    return a.workout_code.localeCompare(b.workout_code)
+  })
+
+  const distinctWeeks = [...new Set(sortedWorkouts.map((w) => w.week_commencing).filter((w): w is string => Boolean(w)))].sort()
+  const currentWeek = findCurrentWeek(distinctWeeks)
+  const effectiveWeek = week === 'all' ? null : (week ?? currentWeek)
+  const visibleWorkouts = effectiveWeek ? sortedWorkouts.filter((w) => w.week_commencing === effectiveWeek) : sortedWorkouts
+
+  const weekPicker = distinctWeeks.length > 0 && (
+    <label className="plan-browser-week-picker">
+      Week
+      <select value={week ?? ''} onChange={(e) => setSelection({ week: e.target.value || null })}>
+        <option value="">{currentWeek ? `w/c ${formatDate(currentWeek)}` : 'This week'}</option>
+        {distinctWeeks.map((w) => (
+          <option key={w} value={w}>
+            w/c {formatDate(w)}
+          </option>
+        ))}
+        <option value="all">All weeks</option>
+      </select>
+    </label>
+  )
+
   const workoutsTable = (
-    <DataTable
-      caption="Workouts"
-      columns={workoutColumns}
-      rows={[...workouts]
-        .sort((a, b) => {
-          const weekCompare = (a.week_commencing ?? '').localeCompare(b.week_commencing ?? '')
-          if (weekCompare !== 0) return weekCompare
-          return a.workout_code.localeCompare(b.workout_code)
-        })
-        .map(toWorkoutRow)}
-      getRowId={(w) => w.id}
-      selectedId={workoutId}
-      onSelectRow={(w) => setSelection({ workoutId: w.id })}
-      expandedRowId={workoutId}
-      renderExpandedRow={() => (
-        <IntervalsTable intervals={intervals} estimated2kSeconds={estimated2kSeconds} loading={loadingIntervals} />
-      )}
-      loading={loadingWorkouts}
-      emptyMessage="No workouts in this block."
-    />
+    <>
+      {weekPicker}
+      <DataTable
+        caption="Workouts"
+        columns={workoutColumns}
+        rows={visibleWorkouts.map(toWorkoutRow)}
+        getRowId={(w) => w.id}
+        selectedId={workoutId}
+        onSelectRow={(w) => setSelection({ workoutId: w.id })}
+        expandedRowId={workoutId}
+        renderExpandedRow={() => (
+          <IntervalsTable intervals={intervals} estimated2kSeconds={estimated2kSeconds} loading={loadingIntervals} />
+        )}
+        loading={loadingWorkouts}
+        emptyMessage="No workouts in this block."
+      />
+    </>
   )
 
   const blocksTable = (
@@ -242,7 +274,7 @@ export default function PlanBrowser() {
       rows={blocks.map(toBlockRow)}
       getRowId={(b) => b.id}
       selectedId={blockId}
-      onSelectRow={(b) => setSelection({ blockId: b.id, workoutId: null })}
+      onSelectRow={(b) => setSelection({ blockId: b.id, workoutId: null, week: null })}
       expandedRowId={blockId}
       renderExpandedRow={() => workoutsTable}
       loading={loadingBlocks}
@@ -257,7 +289,7 @@ export default function PlanBrowser() {
       rows={plans.map(toPlanRow)}
       getRowId={(p) => p.id}
       selectedId={planId}
-      onSelectRow={(p) => setSelection({ planId: p.id, blockId: null, workoutId: null })}
+      onSelectRow={(p) => setSelection({ planId: p.id, blockId: null, workoutId: null, week: null })}
       expandedRowId={planId}
       renderExpandedRow={() => blocksTable}
       loading={loadingPlans}
