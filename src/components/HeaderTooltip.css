@@ -23,6 +23,18 @@
   outline-offset: 2px;
 }
 
+.header-tooltip-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+.header-tooltip-button:hover .header-tooltip-icon,
+.header-tooltip-button:focus-visible .header-tooltip-icon {
+  opacity: 1;
+}
+
 .header-tooltip-panel {
   position: absolute;
   top: 0;

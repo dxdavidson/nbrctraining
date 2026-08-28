@@ -33,7 +33,11 @@ export default function HeaderTooltip({ label, children }: { label: string; chil
         aria-describedby={open ? tooltipId : undefined}
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span aria-hidden="true">ⓘ</span>
+        <svg className="header-tooltip-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+          <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="10" cy="6" r="1.15" fill="currentColor" />
+          <rect x="9" y="9" width="2" height="6" rx="1" fill="currentColor" />
+        </svg>
         <span className="sr-only">More info about {label}</span>
       </button>
       {open && (

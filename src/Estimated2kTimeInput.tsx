@@ -1,4 +1,5 @@
 import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
+import HeaderTooltip from './components/HeaderTooltip'
 import './Estimated2kTimeInput.css'
 
 function clamp(value: number, min: number, max: number): number {
@@ -32,7 +33,16 @@ export default function Estimated2kTimeInput() {
   return (
     <div className="estimated-2k-time">
       <span className="estimated-2k-time-label" id="estimated-2k-time-label">
-        Estimated 2K Time
+        <HeaderTooltip label="Estimated 2K Time">
+          Your estimated 2K time is the baseline used to calculate the target pace shown for each workout interval.
+          <ul>
+            <li>L4: target pace is looked up from a reference table based on your 2K pace and the workout&apos;s stroke rate.</li>
+            <li>L3: target pace is 80% of the power equivalent to your 2K pace.</li>
+            <li>L2: target pace is 95% of the power equivalent to your 2K pace.</li>
+            <li>L1: target pace is your 2K pace adjusted slightly for stroke rate.</li>
+          </ul>
+          Update this whenever your 2K estimate changes to keep target paces accurate.
+        </HeaderTooltip>
       </span>
       <div className="estimated-2k-time-inputs" role="group" aria-labelledby="estimated-2k-time-label">
         <input
