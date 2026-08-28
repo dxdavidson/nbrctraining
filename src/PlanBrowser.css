@@ -48,6 +48,12 @@
   color: #fff;
 }
 
+.level-badge-group {
+  display: inline-flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
 .plan-browser-week-picker {
   display: flex;
   align-items: center;

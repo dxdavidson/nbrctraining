@@ -61,6 +61,22 @@ const LEVEL_INFO: Record<string, { label: string; className: string }> = {
 
 function LevelBadge({ level }: { level: string | null }) {
   if (!level) return <>—</>
+  const codes = level.split(',').map((c) => c.trim()).filter(Boolean)
+  if (codes.length > 1) {
+    // Mixed-level workout: show bare level codes only, no label text
+    return (
+      <span className="level-badge-group">
+        {codes.map((code, i) => {
+          const info = LEVEL_INFO[code]
+          return (
+            <span key={i} className={`level-badge ${info?.className ?? ''}`}>
+              {code}
+            </span>
+          )
+        })}
+      </span>
+    )
+  }
   const info = LEVEL_INFO[level]
   if (!info) return <>{level}</>
   return (
