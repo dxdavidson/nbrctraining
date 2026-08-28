@@ -1,0 +1,47 @@
+.about-box {
+  position: fixed;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  z-index: 50;
+}
+
+.about-box-toggle {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  opacity: 0.75;
+}
+
+.about-box-toggle:hover,
+.about-box-toggle:focus-visible {
+  opacity: 1;
+}
+
+.about-box-panel {
+  position: absolute;
+  bottom: 2.25rem;
+  right: 0;
+  min-width: 12rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.about-box-panel dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.about-box-panel dt {
+  font-weight: 600;
+  color: var(--text-h);
+}

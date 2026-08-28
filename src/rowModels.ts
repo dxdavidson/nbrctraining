@@ -1,6 +1,6 @@
 import formatDate from './formatDate'
 import type { Plan, Block, Workout, Interval } from './api'
-import { calculateWolverinePace, isWolverineLevel } from './wolverinePace'
+import { calculatePaceGuidance, isPaceGuidanceMode, isWolverineLevel, requiresStrokeRate } from './paceGuidance'
 
 // Centralizes display-only derivations so column defs stay pure "which field goes where".
 
@@ -49,20 +49,21 @@ function formatRecovery(kind: string | null, secondsValue: number | null): strin
   return kind === 'time' ? duration : `${kind} ${duration}`
 }
 
-// two_k_pace_offset_seconds: target pace = (estimated 2K time / 4) + offset, shown per 500m.
-// L1-L4: Wolverine Plan levels; target pace is derived from spm and estimated 2K pace.
+// Target pace formulas live in paceGuidance.ts; this only formats the result for display.
 function formatTarget(mode: string | null, value: number | null, estimated2kSeconds: number | null, spm: number | null): string {
-  if (mode === 'two_k_pace_offset_seconds') {
-    if (value == null || estimated2kSeconds == null) return '—'
-    const targetPaceSeconds = estimated2kSeconds / 4 + value
-    return formatMinutesSeconds(targetPaceSeconds)
+  if (!isPaceGuidanceMode(mode)) {
+    return formatKindValue(mode, value)
   }
-  if (isWolverineLevel(mode)) {
-    if (spm == null || estimated2kSeconds == null) return '—'
-    const { seconds } = calculateWolverinePace(mode, spm, estimated2kSeconds / 4)
-    return formatMinutesSeconds(seconds)
+  if (estimated2kSeconds == null) return '—'
+  if (requiresStrokeRate(mode) && spm == null) return '—'
+  if (!isWolverineLevel(mode) && value == null) return '—'
+
+  try {
+    const { secondsPer500m } = calculatePaceGuidance(mode, { estimated2kSeconds, spm: spm ?? 0, targetValue: value })
+    return formatMinutesSeconds(secondsPer500m)
+  } catch {
+    return '—'
   }
-  return formatKindValue(mode, value)
 }
 
 export function toPlanRow(plan: Plan): PlanRow {

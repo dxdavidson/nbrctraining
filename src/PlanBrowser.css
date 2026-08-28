@@ -17,6 +17,10 @@
   opacity: 0.7;
 }
 
+.pace-guidance-highlight {
+  color: var(--accent);
+}
+
 .plan-browser-breadcrumb ol {
   display: flex;
   flex-wrap: wrap;

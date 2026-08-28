@@ -1,0 +1,40 @@
+.pace-guidance-tool {
+  max-width: 32rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.pace-guidance-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pace-guidance-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.pace-guidance-form input,
+.pace-guidance-form select {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.pace-guidance-result {
+  margin-top: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.pace-guidance-error {
+  color: var(--danger, #c62828);
+}

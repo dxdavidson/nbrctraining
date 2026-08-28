@@ -38,7 +38,7 @@ const planColumns: Column<PlanRow>[] = [
       const href = `/plans/${encodeURIComponent(p.id)}?from=${encodeURIComponent(returnUrl)}`
       return (
         <a href={href} onClick={(event) => event.stopPropagation()}>
-          View plan
+          Plan Description
         </a>
       )
     },
@@ -59,12 +59,40 @@ const workoutColumns: Column<WorkoutRow>[] = [
     header: (
       <HeaderTooltip label="Intensity">
         The Wolverine Plan categorizes training into four intensity levels, defined by energy systems, stroke rates, and target split paces derived from your baseline 2K performance.
-        <ul>
-          <li>L4: Low intensity, focusing on technique and endurance.</li>
-          <li>L3: Moderate intensity, balancing endurance and power.</li>
-          <li>L2: High intensity, emphasizing power and speed.</li>
-          <li>L1: Maximum intensity, targeting peak performance.</li>
-        </ul>
+        
+          <br/><br/>
+          L4 - Aerobic Base / Rate‑Restricted.
+            <ul>
+              <li>Purpose: Aerobic development, technique, efficiency.</li>
+              <li>Stick to the stroke rates, this is primary goal (pace is a rough guide)</li>
+              <li>Intensity: Steady, sustainable</li>
+              <li>Stroke Rate: Strictly R18–20</li>
+              <li>Examples: 30–40 min continuous, countdowns, long intervals</li>
+            </ul>
+          L3 - Threshold / Hard Steady.
+          <ul>
+            <li>Purpose: Build sustainable race‑pace endurance</li>
+            <li>Pace <b>80%</b> of your 2K estimate, hitting this pace is primary goal (stroke rate is purely a rough guide)</li>
+            <li>Intensity: Controlled discomfort; “comfortably hard”</li>
+            <li>Stroke Rate: R20–24</li>
+            <li>Examples: 3 × 10 min, 2 × 12 min, 20 min continuous</li>
+          </ul>
+          L2 - High‑Rate Power / VO2.
+            <ul>
+              <li>Purpose: Develop race‑pace power, high‑rate control, and oxygen uptake</li>
+              <li>Pace <b>95%</b> of your 2K estimate, hitting this pace is primary goal (stroke rate is purely a rough guide)</li>
+              <li>Intensity: Very hard but repeatable</li>
+              <li>Stroke Rate: R26–32 (depending on block)</li>
+              <li>Examples: 4 × 4 min, 6 × 3 min, 10 × 1 min</li>
+            </ul>
+
+          L1 - Maximal Effort.
+            <ul>
+              <li>Purpose: Measure performance; sharpen top‑end speed</li>
+              <li>Intensity: All‑out</li>
+              <li>Examples: 2k test, 5k test, 1‑min max, 500m max</li>
+            </ul>
+
       </HeaderTooltip>
     ),
     render: (w) => w.level ?? '—',
@@ -75,8 +103,23 @@ const workoutColumns: Column<WorkoutRow>[] = [
 const intervalColumns: Column<IntervalRow>[] = [
   { key: 'interval_order', header: '#', render: (i) => i.interval_order, sortValue: (i) => i.interval_order },
   { key: 'work', header: 'Work', render: (i) => i.workDisplay },
-  { key: 'spm', header: 'SPM', render: (i) => i.spm ?? '—', sortValue: (i) => i.spm, width: '5rem' },
-  { key: 'target', header: 'Target Pace', render: (i) => i.targetDisplay },
+  {
+    key: 'spm',
+    header: 'SPM',
+    render: (i) => (i.target_mode === 'L4' ? <strong className="pace-guidance-highlight">{i.spm ?? '—'}</strong> : (i.spm ?? '—')),
+    sortValue: (i) => i.spm,
+    width: '5rem',
+  },
+  {
+    key: 'target',
+    header: 'Target Pace',
+    render: (i) =>
+      i.target_mode === 'L2' || i.target_mode === 'L3' ? (
+        <strong className="pace-guidance-highlight">{i.targetDisplay}</strong>
+      ) : (
+        i.targetDisplay
+      ),
+  },
   { key: 'recovery', header: 'Recovery', render: (i) => i.recoveryDisplay },
   { key: 'repeat_count', header: 'Repeat', render: (i) => i.repeat_count, sortValue: (i) => i.repeat_count },
 ]
@@ -173,7 +216,13 @@ export default function PlanBrowser() {
     <DataTable
       caption="Workouts"
       columns={workoutColumns}
-      rows={[...workouts].sort((a, b) => (a.sort_order ?? Infinity) - (b.sort_order ?? Infinity)).map(toWorkoutRow)}
+      rows={[...workouts]
+        .sort((a, b) => {
+          const weekCompare = (a.week_commencing ?? '').localeCompare(b.week_commencing ?? '')
+          if (weekCompare !== 0) return weekCompare
+          return a.workout_code.localeCompare(b.workout_code)
+        })
+        .map(toWorkoutRow)}
       getRowId={(w) => w.id}
       selectedId={workoutId}
       onSelectRow={(w) => setSelection({ workoutId: w.id })}

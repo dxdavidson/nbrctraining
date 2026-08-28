@@ -10,7 +10,7 @@ export interface WolverinePaceResult {
 
 const CONCEPT2_WATTS_CONSTANT = 2.8
 
-function wattsFromSecondsPer500m(secondsPer500m: number): number {
+export function wattsFromSecondsPer500m(secondsPer500m: number): number {
   return CONCEPT2_WATTS_CONSTANT / Math.pow(secondsPer500m / 500, 3)
 }
 
@@ -22,8 +22,9 @@ export function isWolverineLevel(mode: string | null): mode is WolverineLevel {
   return mode === 'L1' || mode === 'L2' || mode === 'L3' || mode === 'L4'
 }
 
-// spm maps to an offset (L1/L2/L4) or a scaling factor (L3) applied to 2K pace/watts.
-export function calculateWolverinePace(level: WolverineLevel, spm: number, seconds2k: number): WolverinePaceResult {
+// spm maps to an offset (L1) or a scaling factor (L3) applied to 2K pace/watts.
+// L4 uses a measured reference table (see wolverineL4Table.ts) instead of a formula.
+export function calculateWolverinePace(level: Exclude<WolverineLevel, 'L4'>, spm: number, seconds2k: number): WolverinePaceResult {
   if (!Number.isFinite(seconds2k) || seconds2k <= 0) {
     throw new Error('Invalid 2K pace provided.')
   }
@@ -41,27 +42,15 @@ export function calculateWolverinePace(level: WolverineLevel, spm: number, secon
       break
     }
     case 'L2': {
-      const offset = 4 - ((spm - 24) / (28 - 24)) * 2 // maps 24-28 spm to +4s to +2s
-      seconds = seconds2k + Math.max(2, Math.min(4, offset))
-      watts = wattsFromSecondsPer500m(seconds)
-      break
-    }
-    case 'L3': {
-      // Placeholder coefficients tuned to sit between L2 and L4; adjust once exact Wolverine values are known.
-      watts = watts2k * (0.8 + 0.015 * (spm - 22))
+      // Fixed at 95% of estimated 2K watts; stroke rate is not a factor for this level.
+      watts = watts2k * 0.95
       seconds = secondsPer500mFromWatts(watts)
       break
     }
-    case 'L4': {
-      let offset = 14 // default 20 spm
-      if (spm <= 16) offset = 20
-      else if (spm <= 18) offset = 17
-      else if (spm <= 20) offset = 14
-      else if (spm <= 22) offset = 11
-      else offset = 14 - (spm - 20) * 1.5
-
-      seconds = seconds2k + offset
-      watts = wattsFromSecondsPer500m(seconds)
+    case 'L3': {
+      // Fixed at 80% of estimated 2K watts; stroke rate is not a factor for this level.
+      watts = watts2k * 0.8
+      seconds = secondsPer500mFromWatts(watts)
       break
     }
   }
@@ -71,3 +60,4 @@ export function calculateWolverinePace(level: WolverineLevel, spm: number, secon
     watts: Math.round(watts),
   }
 }
+

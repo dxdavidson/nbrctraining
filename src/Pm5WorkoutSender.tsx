@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
 import type { Interval, Workout } from './api'
-import { calculateWolverinePace, isWolverineLevel } from './wolverinePace'
+import { calculatePaceGuidance, isPaceGuidanceMode, isWolverineLevel, requiresStrokeRate } from './paceGuidance'
 import HeaderTooltip from './components/HeaderTooltip'
 
 declare global {
@@ -213,24 +213,22 @@ function getIntervalType(workKind: string | null): number {
 }
 
 function toTargetPaceHundredths(interval: Interval, estimated2kSeconds: number | null): number | null {
-  if (isWolverineLevel(interval.target_mode)) {
-    if (interval.spm == null || estimated2kSeconds == null) {
-      return null
-    }
-    const { seconds } = calculateWolverinePace(interval.target_mode, interval.spm, estimated2kSeconds / 4)
-    return Number.isFinite(seconds) ? Math.max(0, Math.round(seconds * 100)) : null
-  }
-
-  if (interval.target_mode !== 'two_k_pace_offset_seconds' || interval.target_value == null || estimated2kSeconds == null) {
+  if (!isPaceGuidanceMode(interval.target_mode) || estimated2kSeconds == null) {
     return null
   }
+  if (requiresStrokeRate(interval.target_mode) && interval.spm == null) return null
+  if (!isWolverineLevel(interval.target_mode) && interval.target_value == null) return null
 
-  const secondsPer500m = estimated2kSeconds / 4 + interval.target_value
-  if (!Number.isFinite(secondsPer500m)) {
+  try {
+    const { secondsPer500m } = calculatePaceGuidance(interval.target_mode, {
+      estimated2kSeconds,
+      spm: interval.spm ?? 0,
+      targetValue: interval.target_value,
+    })
+    return Number.isFinite(secondsPer500m) ? Math.max(0, Math.round(secondsPer500m * 100)) : null
+  } catch {
     return null
   }
-
-  return Math.max(0, Math.round(secondsPer500m * 100))
 }
 
 export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSenderProps) {
