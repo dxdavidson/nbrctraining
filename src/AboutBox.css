@@ -1,6 +1,6 @@
 .about-box {
   position: fixed;
-  bottom: 0.75rem;
+  top: 0.75rem;
   right: 0.75rem;
   z-index: 50;
 }
@@ -23,7 +23,7 @@
 
 .about-box-panel {
   position: absolute;
-  bottom: 2.25rem;
+  top: 2.25rem;
   right: 0;
   min-width: 12rem;
   padding: 0.6rem 0.75rem;
