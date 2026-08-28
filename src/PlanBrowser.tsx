@@ -52,6 +52,24 @@ const blockColumns: Column<BlockRow>[] = [
   { key: 'description', header: 'Description', render: (b) => b.description ?? '—' },
 ]
 
+const LEVEL_INFO: Record<string, { label: string; className: string }> = {
+  L4: { label: 'Easy', className: 'level-badge-l4' },
+  L3: { label: 'Steady', className: 'level-badge-l3' },
+  L2: { label: 'Hard', className: 'level-badge-l2' },
+  L1: { label: 'Max', className: 'level-badge-l1' },
+}
+
+function LevelBadge({ level }: { level: string | null }) {
+  if (!level) return <>—</>
+  const info = LEVEL_INFO[level]
+  if (!info) return <>{level}</>
+  return (
+    <span className={`level-badge ${info.className}`}>
+      {level} · {info.label}
+    </span>
+  )
+}
+
 const workoutColumns: Column<WorkoutRow>[] = [
   { key: 'week_commencing', header: 'w/c', render: (w) => w.weekCommencingDisplay, sortValue: (w) => w.week_commencing },
   { key: 'workout_code', header: 'Workout', render: (w) => w.workout_code, sortValue: (w) => w.workout_code },
@@ -96,7 +114,7 @@ const workoutColumns: Column<WorkoutRow>[] = [
 
       </HeaderTooltip>
     ),
-    render: (w) => w.level ?? '—',
+    render: (w) => <LevelBadge level={w.level} />,
   },
   { key: 'description', header: 'Description', render: (w) => w.description ?? '—' },
 ]

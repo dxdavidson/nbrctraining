@@ -21,6 +21,33 @@
   color: var(--accent);
 }
 
+.level-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #1a1a1a;
+}
+
+.level-badge-l4 {
+  background: #8bd17c;
+}
+
+.level-badge-l3 {
+  background: #e8d359;
+}
+
+.level-badge-l2 {
+  background: #eda85a;
+}
+
+.level-badge-l1 {
+  background: #e0645a;
+  color: #fff;
+}
+
 .plan-browser-week-picker {
   display: flex;
   align-items: center;
