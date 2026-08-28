@@ -36,11 +36,8 @@
 }
 
 .header-tooltip-panel {
-  position: absolute;
-  top: 0;
-  right: 100%;
+  position: fixed;
   z-index: 10;
-  margin-right: 0.35rem;
   padding: 0.5rem 0.75rem;
   background: var(--surface, #222);
   color: var(--text, #fff);
@@ -50,7 +47,7 @@
   font-size: 0.85rem;
   white-space: normal;
   width: max-content;
-  max-width: 16rem;
+  max-width: min(16rem, calc(100vw - 1rem));
 }
 
 .sr-only {

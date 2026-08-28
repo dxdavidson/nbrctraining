@@ -1,10 +1,14 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import './HeaderTooltip.css'
+
+const PANEL_MAX_WIDTH = 256 // matches --header-tooltip-max-width in HeaderTooltip.css
 
 // Click/tap-to-toggle tooltip so it works without hover on touch devices.
 export default function HeaderTooltip({ label, children }: { label: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
+  const [panelPosition, setPanelPosition] = useState<{ top: number; left: number } | null>(null)
   const wrapperRef = useRef<HTMLSpanElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const tooltipId = useId()
 
   useEffect(() => {
@@ -15,12 +19,31 @@ export default function HeaderTooltip({ label, children }: { label: string; chil
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
     }
+    const handleViewportChange = () => setOpen(false)
     document.addEventListener('pointerdown', handlePointerDown)
     document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('scroll', handleViewportChange, true)
+    window.addEventListener('resize', handleViewportChange)
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('scroll', handleViewportChange, true)
+      window.removeEventListener('resize', handleViewportChange)
     }
+  }, [open])
+
+  // Anchor the panel to the button's actual position and clamp it within the viewport
+  // so it stays readable on narrow screens instead of overflowing off the left edge.
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current) {
+      setPanelPosition(null)
+      return
+    }
+    const rect = buttonRef.current.getBoundingClientRect()
+    const maxWidth = Math.min(PANEL_MAX_WIDTH, window.innerWidth - 16)
+    const left = Math.min(Math.max(8, rect.left), window.innerWidth - maxWidth - 8)
+    const top = rect.bottom + 6
+    setPanelPosition({ top, left })
   }, [open])
 
   return (
@@ -28,6 +51,7 @@ export default function HeaderTooltip({ label, children }: { label: string; chil
       {label}
       <button
         type="button"
+        ref={buttonRef}
         className="header-tooltip-button"
         aria-expanded={open}
         aria-describedby={open ? tooltipId : undefined}
@@ -40,8 +64,13 @@ export default function HeaderTooltip({ label, children }: { label: string; chil
         </svg>
         <span className="sr-only">More info about {label}</span>
       </button>
-      {open && (
-        <span role="tooltip" id={tooltipId} className="header-tooltip-panel">
+      {open && panelPosition && (
+        <span
+          role="tooltip"
+          id={tooltipId}
+          className="header-tooltip-panel"
+          style={{ top: panelPosition.top, left: panelPosition.left }}
+        >
           {children}
         </span>
       )}

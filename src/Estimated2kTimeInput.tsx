@@ -39,7 +39,7 @@ export default function Estimated2kTimeInput() {
             <li>L4: target pace is looked up from a reference table based on your 2K pace and the workout&apos;s stroke rate.</li>
             <li>L3: target pace is 80% of the power equivalent to your 2K pace.</li>
             <li>L2: target pace is 95% of the power equivalent to your 2K pace.</li>
-            <li>L1: target pace is your 2K pace adjusted slightly for stroke rate.</li>
+            <li>L1: There is no target pace, go full bore, this is just used for tests</li>
           </ul>
           Update this whenever your 2K estimate changes to keep target paces accurate.
         </HeaderTooltip>
