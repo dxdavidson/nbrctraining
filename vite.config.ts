@@ -17,8 +17,12 @@ function getCommitHash(): string {
 
 const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
 
+// Unset (Netlify) builds at root; set BASE_PATH=/training/ for the nbrowingclub.com sub-path deploy.
+const BASE_PATH = process.env.BASE_PATH ?? '/'
+
 // https://vite.dev/config/
 export default defineConfig({
+  base: BASE_PATH,
   define: {
     __APP_VERSION__: JSON.stringify(version),
     __COMMIT_HASH__: JSON.stringify(getCommitHash()),
@@ -33,13 +37,14 @@ export default defineConfig({
         name: 'NBRC Training',
         short_name: 'NBRC Training',
         description: 'Browse training plans and send workouts to a Concept2 PM5.',
-        start_url: '/',
+        start_url: BASE_PATH,
+        scope: BASE_PATH,
         display: 'standalone',
         background_color: '#0d0d0d',
         theme_color: '#0d0d0d',
         icons: [
           {
-            src: '/favicon.svg',
+            src: `${BASE_PATH}favicon.svg`,
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any',

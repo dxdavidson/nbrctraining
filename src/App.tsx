@@ -6,15 +6,21 @@ import PaceGuidanceTool from './PaceGuidanceTool'
 import AboutBox from './AboutBox'
 
 function App() {
-  if (window.location.pathname === '/admin/import') {
+  // Strip the deploy base path (e.g. "/training/") so route matching works when hosted under a sub-path.
+  const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
+  const routePath = window.location.pathname.startsWith(basePath)
+    ? window.location.pathname.slice(basePath.length) || '/'
+    : window.location.pathname
+
+  if (routePath === '/admin/import') {
     return <AdminImport />
   }
 
-  if (window.location.pathname === '/tools/pace-guidance') {
+  if (routePath === '/tools/pace-guidance') {
     return <PaceGuidanceTool />
   }
 
-  const planMatch = window.location.pathname.match(/^\/plans\/([^/]+)$/)
+  const planMatch = routePath.match(/^\/plans\/([^/]+)$/)
   if (planMatch) {
     return <PlanDescription planId={decodeURIComponent(planMatch[1])} />
   }

@@ -88,6 +88,28 @@ cd server
 npm start
 ```
 
+## Deploying to https://nbrowingclub.com/training
+
+The frontend is hosted at Netlify (serving from the domain root) and additionally deployed as a static build under `https://nbrowingclub.com/training`. `vite.config.ts` reads a `BASE_PATH` environment variable at build time (defaulting to `/`) to control the base path used for asset URLs, routing, and the PWA manifest.
+
+Build for the `/training` sub-path:
+
+```powershell
+$env:BASE_PATH='/training/'; npm run build
+```
+
+Set `VITE_API_BASE_URL` in `.env.production` (or as a build-time env var) to the API's own origin before building — this is unrelated to `BASE_PATH` and should never include `/training`:
+
+```dotenv
+VITE_API_BASE_URL=https://api.nbrowingclub.com
+```
+
+Upload the contents of `dist/` to the `/training` path on the host. The host must be configured to serve `index.html` for any unmatched path under `/training` (SPA fallback), since routes like `/training/plans/:id` are handled client-side.
+
+Set `CLIENT_ORIGIN` on the API to include `https://nbrowingclub.com` so cross-origin requests from this deployment are accepted.
+
+The Netlify deployment is unaffected: its build runs `npm run build` without `BASE_PATH` set, so it keeps using `/` as the base and continues serving from the domain root.
+
 ## Test and Validate
 
 Run the automated frontend tests once:

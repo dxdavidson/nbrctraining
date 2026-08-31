@@ -36,7 +36,8 @@ const planColumns: Column<PlanRow>[] = [
     render: (p) => {
       if (!p.description?.trim()) return <span className="plan-description-unavailable">Not available</span>
       const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
-      const href = `/plans/${encodeURIComponent(p.id)}?from=${encodeURIComponent(returnUrl)}`
+      // Prefix with the deploy base path so the link works when hosted under a sub-path.
+      const href = `${import.meta.env.BASE_URL}plans/${encodeURIComponent(p.id)}?from=${encodeURIComponent(returnUrl)}`
       return (
         <a href={href} onClick={(event) => event.stopPropagation()}>
           Plan Description

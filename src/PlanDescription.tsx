@@ -11,7 +11,7 @@ interface PlanDescriptionProps {
 
 function getReturnUrl() {
   const from = new URLSearchParams(window.location.search).get('from')
-  return from?.startsWith('/') ? from : '/'
+  return from?.startsWith('/') ? from : import.meta.env.BASE_URL
 }
 
 export default function PlanDescription({ planId }: PlanDescriptionProps) {
