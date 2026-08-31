@@ -32,7 +32,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons.svg', 'ergometer.js'],
+      includeAssets: ['NBRC_Ergo_32.png', 'NBRC_Ergo_180.png', 'NBRC_Ergo_192.png', 'NBRC_Ergo_512.png', 'ergometer.js'],
       manifest: {
         name: 'NBRC Training',
         short_name: 'NBRC Training',
@@ -44,10 +44,16 @@ export default defineConfig({
         theme_color: '#0d0d0d',
         icons: [
           {
-            src: `${BASE_PATH}favicon.svg`,
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: `${BASE_PATH}NBRC_Ergo_192.png`,
+            sizes: '192x192',
+            type: 'image/png',
             purpose: 'any',
+          },
+          {
+            src: `${BASE_PATH}NBRC_Ergo_512.png`,
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
           },
         ],
       },

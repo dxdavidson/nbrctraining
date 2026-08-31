@@ -296,6 +296,8 @@ export default function PlanBrowser() {
         renderExpandedRow={() => (
           <IntervalsTable intervals={intervals} estimated2kSeconds={estimated2kSeconds} loading={loadingIntervals} />
         )}
+        onToggleRow={(w, isExpanded) => setSelection(isExpanded ? { workoutId: null } : { workoutId: w.id })}
+        getRowLabel={(w) => w.workout_code}
         loading={loadingWorkouts}
         emptyMessage="No workouts in this block."
       />
@@ -312,6 +314,10 @@ export default function PlanBrowser() {
       onSelectRow={(b) => setSelection({ blockId: b.id, workoutId: null, week: null })}
       expandedRowId={blockId}
       renderExpandedRow={() => workoutsTable}
+      onToggleRow={(b, isExpanded) => setSelection(
+        isExpanded ? { blockId: null, workoutId: null, week: null } : { blockId: b.id, workoutId: null, week: null }
+      )}
+      getRowLabel={(b) => b.title}
       loading={loadingBlocks}
       emptyMessage="No blocks in this plan."
     />
@@ -327,6 +333,10 @@ export default function PlanBrowser() {
       onSelectRow={(p) => setSelection({ planId: p.id, blockId: null, workoutId: null, week: null })}
       expandedRowId={planId}
       renderExpandedRow={() => blocksTable}
+      onToggleRow={(p, isExpanded) => setSelection(
+        isExpanded ? { planId: null, blockId: null, workoutId: null, week: null } : { planId: p.id, blockId: null, workoutId: null, week: null }
+      )}
+      getRowLabel={(p) => p.title}
       loading={loadingPlans}
       emptyMessage="No plans found."
     />

@@ -18,6 +18,8 @@ interface DataTableProps<Row> {
   onSelectRow: (row: Row) => void
   expandedRowId?: string | null
   renderExpandedRow?: (row: Row) => React.ReactNode
+  onToggleRow?: (row: Row, isExpanded: boolean) => void
+  getRowLabel?: (row: Row) => string
   loading: boolean
   emptyMessage: string
 }
@@ -33,6 +35,8 @@ export default function DataTable<Row>({
   onSelectRow,
   expandedRowId = null,
   renderExpandedRow,
+  onToggleRow,
+  getRowLabel,
   loading,
   emptyMessage,
 }: DataTableProps<Row>) {
@@ -61,12 +65,15 @@ export default function DataTable<Row>({
     })
   })()
 
+  const hasExpansionControls = Boolean(renderExpandedRow && onToggleRow)
+
   return (
     <div className="data-table-wrapper">
       <table className={`data-table data-table-${caption.toLowerCase()}`}>
         <caption>{caption}</caption>
         <thead>
           <tr>
+            {hasExpansionControls && <th className="data-table-disclosure-header" scope="col" aria-label="Expand or collapse" />}
             {columns.map((column) => {
               const isSorted = sort?.key === column.key
               return (
@@ -110,6 +117,7 @@ export default function DataTable<Row>({
               const id = getRowId(row)
               const isSelected = id === selectedId
               const isExpanded = id === expandedRowId && Boolean(renderExpandedRow)
+              const rowLabel = getRowLabel?.(row) ?? id
               return (
                 <Fragment key={id}>
                   <tr
@@ -125,13 +133,29 @@ export default function DataTable<Row>({
                       }
                     }}
                   >
+                    {hasExpansionControls && (
+                      <td className="data-table-disclosure-cell">
+                        <button
+                          type="button"
+                          className="data-table-disclosure-button"
+                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${rowLabel}`}
+                          aria-expanded={isExpanded}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onToggleRow!(row, isExpanded)
+                          }}
+                        >
+                          <span aria-hidden="true">{isExpanded ? '−' : '+'}</span>
+                        </button>
+                      </td>
+                    )}
                     {columns.map((column) => (
                       <td key={column.key}>{column.render(row)}</td>
                     ))}
                   </tr>
                   {isExpanded && (
                     <tr className="data-table-detail-row">
-                      <td colSpan={columns.length}>{renderExpandedRow!(row)}</td>
+                      <td colSpan={columns.length + (hasExpansionControls ? 1 : 0)}>{renderExpandedRow!(row)}</td>
                     </tr>
                   )}
                 </Fragment>

@@ -81,6 +81,28 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
     expect(screen.getByRole('table', { name: 'Blocks' })).toBeInTheDocument()
   })
 
+  it('collapses an expanded plan, block, or workout with its disclosure button', async () => {
+    const user = userEvent.setup()
+    render(<PlanBrowser />)
+
+    const plansTable = await screen.findByRole('table', { name: 'Plans' })
+    await user.click(within(plansTable).getByRole('button', { name: 'Expand Plan One' }))
+    const blocksTable = await screen.findByRole('table', { name: 'Blocks' })
+    await user.click(within(blocksTable).getByRole('button', { name: 'Expand Block One' }))
+    const workoutsTable = await screen.findByRole('table', { name: 'Workouts' })
+    await user.click(within(workoutsTable).getByRole('button', { name: 'Expand WC1' }))
+    expect(await screen.findByRole('table', { name: 'Intervals' })).toBeInTheDocument()
+
+    await user.click(within(workoutsTable).getByRole('button', { name: 'Collapse WC1' }))
+    expect(screen.queryByRole('table', { name: 'Intervals' })).not.toBeInTheDocument()
+
+    await user.click(within(blocksTable).getByRole('button', { name: 'Collapse Block One' }))
+    expect(screen.queryByRole('table', { name: 'Workouts' })).not.toBeInTheDocument()
+
+    await user.click(within(plansTable).getByRole('button', { name: 'Collapse Plan One' }))
+    expect(screen.queryByRole('table', { name: 'Blocks' })).not.toBeInTheDocument()
+  })
+
   it('restores the drill-down state from URL query params on load (deep link)', async () => {
     window.history.replaceState(null, '', '/?planId=p1&blockId=b1')
     render(<PlanBrowser />)
