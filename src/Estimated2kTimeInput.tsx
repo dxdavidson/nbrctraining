@@ -31,7 +31,7 @@ export default function Estimated2kTimeInput() {
   }
 
   return (
-    <div className="estimated-2k-time">
+    <div className={`estimated-2k-time${!totalSeconds ? ' estimated-2k-time-missing' : ''}`}>
       <span className="estimated-2k-time-label" id="estimated-2k-time-label">
         <HeaderTooltip label="Estimated 2K Time">
           Your estimated 2K time is the baseline used to calculate the target pace shown for each workout interval.

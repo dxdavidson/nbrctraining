@@ -35,3 +35,13 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+.estimated-2k-time-missing .estimated-2k-time-label,
+.estimated-2k-time-missing .estimated-2k-time-inputs input {
+  color: #b42318;
+}
+
+.estimated-2k-time-missing .estimated-2k-time-inputs input {
+  border-color: #d92d20;
+  background: #fff1f0;
+}

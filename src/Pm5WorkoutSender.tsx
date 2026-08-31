@@ -237,7 +237,7 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
   const [pm5, setPm5] = useState<any>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [isSending, setIsSending] = useState(false)
-  const [status, setStatus] = useState('Select a workout and connect to a PM5.')
+  const [status, setStatus] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [deviceInfo, setDeviceInfo] = useState<Record<string, unknown> | null>(null)
   const [commandLog, setCommandLog] = useState('No commands sent yet.')
@@ -295,6 +295,11 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
   }
 
   const sendWorkoutToPm5 = async () => {
+    if (!estimated2kSeconds || estimated2kSeconds <= 0) {
+      setStatus('Enter an estimated 2K time before sending a workout to the PM5.')
+      return
+    }
+
     if (!workout || !pm5 || orderedIntervals.length === 0) {
       setStatus('Select a connected PM5 and a workout before sending.')
       return
@@ -480,15 +485,13 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
         <button
           type="button"
           onClick={sendWorkoutToPm5}
-          disabled={!pm5 || !isConnected || isSending || orderedIntervals.length === 0}
+          disabled={!estimated2kSeconds || estimated2kSeconds <= 0 || !pm5 || !isConnected || isSending || orderedIntervals.length === 0}
         >
           Send workout to PM5
         </button>
       </div>
 
-      <p className="pm5-workout-sender-status" role="status">
-        {status}
-      </p>
+      {status && <p className="pm5-workout-sender-status" role="status">{status}</p>}
 
       {error && (
         <p className="pm5-workout-sender-error" role="alert">

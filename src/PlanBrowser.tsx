@@ -201,6 +201,12 @@ export default function PlanBrowser() {
 
   const { planId, blockId, workoutId, week } = selection
 
+  const requireEstimated2kTime = () => {
+    if (estimated2kSeconds && estimated2kSeconds > 0) return true
+    window.alert('Enter an estimated 2K time before viewing workout intervals.')
+    return false
+  }
+
   useEffect(() => {
     setLoadingPlans(true)
     fetchPlans()
@@ -291,12 +297,16 @@ export default function PlanBrowser() {
         rows={visibleWorkouts.map(toWorkoutRow)}
         getRowId={(w) => w.id}
         selectedId={workoutId}
-        onSelectRow={(w) => setSelection({ workoutId: w.id })}
+        onSelectRow={(w) => {
+          if (workoutId === w.id || requireEstimated2kTime()) setSelection({ workoutId: w.id })
+        }}
         expandedRowId={workoutId}
         renderExpandedRow={() => (
           <IntervalsTable intervals={intervals} estimated2kSeconds={estimated2kSeconds} loading={loadingIntervals} />
         )}
-        onToggleRow={(w, isExpanded) => setSelection(isExpanded ? { workoutId: null } : { workoutId: w.id })}
+        onToggleRow={(w, isExpanded) => {
+          if (isExpanded || requireEstimated2kTime()) setSelection(isExpanded ? { workoutId: null } : { workoutId: w.id })
+        }}
         getRowLabel={(w) => w.workout_code}
         loading={loadingWorkouts}
         emptyMessage="No workouts in this block."

@@ -35,6 +35,8 @@ function mockMatchMedia(matches: boolean) {
 
 beforeEach(() => {
   window.history.replaceState(null, '', '/')
+  window.localStorage.clear()
+  window.localStorage.setItem('nbrctraining.estimated2kTimeSeconds', String(7 * 60 + 30))
   vi.mocked(api.fetchPlans).mockResolvedValue([plan])
   vi.mocked(api.fetchBlocks).mockResolvedValue([block])
   vi.mocked(api.fetchWorkouts).mockResolvedValue([workout])
@@ -79,6 +81,39 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
     expect(await screen.findByRole('table', { name: 'Workouts' })).toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'Plans' })).toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'Blocks' })).toBeInTheDocument()
+  })
+
+  it('requires an estimated 2K time before expanding a workout', async () => {
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    window.localStorage.removeItem('nbrctraining.estimated2kTimeSeconds')
+    const user = userEvent.setup()
+    render(<PlanBrowser />)
+
+    const plansTable = await screen.findByRole('table', { name: 'Plans' })
+    await user.click(within(plansTable).getByText('Plan One'))
+    const blocksTable = await screen.findByRole('table', { name: 'Blocks' })
+    await user.click(within(blocksTable).getByText('Block One'))
+    const workoutsTable = await screen.findByRole('table', { name: 'Workouts' })
+    await user.click(within(workoutsTable).getByText('WC1'))
+
+    expect(alert).toHaveBeenCalledWith('Enter an estimated 2K time before viewing workout intervals.')
+    expect(screen.queryByRole('table', { name: 'Intervals' })).not.toBeInTheDocument()
+  })
+
+  it('treats a zero-second 2K time as missing', async () => {
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    window.localStorage.setItem('nbrctraining.estimated2kTimeSeconds', '0')
+    const user = userEvent.setup()
+    render(<PlanBrowser />)
+
+    const plansTable = await screen.findByRole('table', { name: 'Plans' })
+    await user.click(within(plansTable).getByText('Plan One'))
+    const blocksTable = await screen.findByRole('table', { name: 'Blocks' })
+    await user.click(within(blocksTable).getByText('Block One'))
+    const workoutsTable = await screen.findByRole('table', { name: 'Workouts' })
+    await user.click(within(workoutsTable).getByText('WC1'))
+
+    expect(alert).toHaveBeenCalledWith('Enter an estimated 2K time before viewing workout intervals.')
   })
 
   it('collapses an expanded plan, block, or workout with its disclosure button', async () => {

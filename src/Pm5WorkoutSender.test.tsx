@@ -125,6 +125,13 @@ describe('Pm5WorkoutSender', () => {
     expect(screen.queryByText(/No commands sent yet/i)).not.toBeInTheDocument()
   })
 
+  it('disables sending until an estimated 2K time is entered', () => {
+    window.localStorage.removeItem('nbrctraining.estimated2kTimeSeconds')
+    render(<Pm5WorkoutSender workout={workout} intervals={intervals} />)
+
+    expect(screen.getByRole('button', { name: /^Send workout to PM5$/i })).toBeDisabled()
+  })
+
   it('sends the fixed-time interval protocol without pace', async () => {
     const timeIntervals: Interval[] = [
       {
