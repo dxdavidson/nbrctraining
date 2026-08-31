@@ -90,7 +90,31 @@ npm start
 
 ## Deploying to https://nbrowingclub.com/training
 
-The frontend is hosted at Netlify (serving from the domain root) and additionally deployed as a static build under `https://nbrowingclub.com/training`. `vite.config.ts` reads a `BASE_PATH` environment variable at build time (defaulting to `/`) to control the base path used for asset URLs, routing, and the PWA manifest.
+This application has three separate parts:
+
+- **Frontend:** the static files deployed to `https://nbrowingclub.com/training`.
+- **API:** the Express application in `server/`, deployed as a Railway service. It provides `/api/plans`, `/api/blocks`, `/api/workouts`, and `/api/intervals`.
+- **Database:** the PostgreSQL Railway service used by the API. Its `DATABASE_URL` is a private server-side setting and is never used by the browser.
+
+`vite.config.ts` reads a `BASE_PATH` environment variable at build time (defaulting to `/`) to control the frontend's asset URLs, routing, and PWA manifest.
+
+### Configure the Railway API
+
+In Railway, open the service that runs the Express app, rather than the PostgreSQL service. Under **Settings > Networking > Public Networking**, copy its public domain, for example `https://your-server-production.up.railway.app`.
+
+Set these variables on the Railway Express service:
+
+```dotenv
+DATABASE_URL=<the Railway PostgreSQL connection URL>
+IMPORT_TOKEN=<a long random secret>
+CLIENT_ORIGIN=https://nbrowingclub.com
+```
+
+Create `.env.production` in the repository root and set the public API domain. This is the domain the browser calls for plan data; do not use the Railway PostgreSQL hostname or add `/training` to it:
+
+```dotenv
+VITE_API_BASE_URL=https://your-server-production.up.railway.app
+```
 
 Build for the `/training` sub-path:
 
@@ -98,15 +122,9 @@ Build for the `/training` sub-path:
 $env:BASE_PATH='/training/'; npm run build
 ```
 
-Set `VITE_API_BASE_URL` in `.env.production` (or as a build-time env var) to the API's own origin before building — this is unrelated to `BASE_PATH` and should never include `/training`:
-
-```dotenv
-VITE_API_BASE_URL=https://api.nbrowingclub.com
-```
-
 Upload the contents of `dist/` to the `/training` path on the host. The host must be configured to serve `index.html` for any unmatched path under `/training` (SPA fallback), since routes like `/training/plans/:id` are handled client-side.
 
-Set `CLIENT_ORIGIN` on the API to include `https://nbrowingclub.com` so cross-origin requests from this deployment are accepted.
+After deployment, load `https://nbrowingclub.com/training` and confirm plan data loads. The browser should request it from `https://your-server-production.up.railway.app/api/...`.
 
 The Netlify deployment is unaffected: its build runs `npm run build` without `BASE_PATH` set, so it keeps using `/` as the base and continues serving from the domain root.
 
