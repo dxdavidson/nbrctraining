@@ -4,7 +4,17 @@ The 2026 / 2027 training plan is an evolution of what we have been doing over re
 - I have retained the 2k test for Block 3, even though a skiff 2k takes 12 minutes, because 2k is the standard benchmark, its what training plans use, and it allows us to set goals for ourselves where we can compare our performance to the rowing community at large. 
 
 ## Keys to Success with This Training Plan
-- For L4 workouts stick to the stroke rate stated, the pace guidance is secondary
+- For L4 workouts stick to the stroke rate stated, the pace guidance is secondary. These workouts are for honing your technique
+  - !(Main Phases of rowing)[https://nbrowingclub.com/training/RowingTechnique.png]
+  - Watch this [2min technique video](http://www.youtube.com/watch?v=4zWu1yuJ0_g)
+
+
+| Stroke Phase | Focus Area | Common Pitfall |
+| -------- | -------- | -------- |
+| **The Catch**  | Vertical shins, tall spine, relaxed grip  | Over-reaching or opening the back early  |
+| **The Drive**  | Drive through the heels; 60% legs, 20% core, 20% arms  | Bending elbows before legs are fully extended  |
+| **The Finish** | Slight rearward lean (~11 o'clock position), hands to lower ribs | Slouching or pulling hands up too high |
+| **The Recovery** | Full arm extension and hip hinge before knees bend | Bending knees early, causing handle to jump over knees |
 - For L2 & L3 workouts, stick to the pace target, the stroke rate is secondary
 - Use the low rates to improve your technique, not to get your best splits 
 - Train with the intensity specified for the workout and use the pace guidance
