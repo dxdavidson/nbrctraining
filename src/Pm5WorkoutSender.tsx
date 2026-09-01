@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
 import type { Interval, Workout } from './api'
 import { calculatePaceGuidance, isPaceGuidanceMode, isWolverineLevel, requiresStrokeRate } from './paceGuidance'
 import HeaderTooltip from './components/HeaderTooltip'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
 
 declare global {
   interface Window {
@@ -241,11 +243,50 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
   const [error, setError] = useState<string | null>(null)
   const [deviceInfo, setDeviceInfo] = useState<Record<string, unknown> | null>(null)
   const [commandLog, setCommandLog] = useState('No commands sent yet.')
+  const [stayConnected, setStayConnected] = useState(false)
+  const [isMonitoringWorkout, setIsMonitoringWorkout] = useState(false)
+  const [concept2Connected, setConcept2Connected] = useState<boolean | null>(null)
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null)
 
   const orderedIntervals = useMemo(
     () => [...intervals].sort((a, b) => a.interval_order - b.interval_order),
     [intervals]
   )
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${API_BASE_URL}/api/concept2/status`, { credentials: 'include' })
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled) setConcept2Connected(Boolean(data?.connected))
+      })
+      .catch(() => {
+        if (!cancelled) setConcept2Connected(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const uploadWorkoutSummary = async (summary: Record<string, unknown>, startedAt: string) => {
+    setUploadStatus('Uploading result to your Concept2 Logbook...')
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/logbook/results`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...summary, startedAt }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => null)
+        throw new Error(body?.error ?? `Upload failed with status ${response.status}`)
+      }
+      setUploadStatus('Result uploaded to your Concept2 Logbook.')
+    } catch (uploadError) {
+      const message = uploadError instanceof Error ? uploadError.message : String(uploadError)
+      setUploadStatus(`Could not upload to Concept2 Logbook: ${message}`)
+    }
+  }
 
   const connectPm5 = () => {
     if (!workout) {
@@ -432,11 +473,31 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
         setCommandLog((previous) => appendCommandHistory(previous, `[diag] Screen buffer sent in ${screenDuration.toFixed(1)}ms`))
       }
 
-      setStatus('Workout sent. Check the PM5 and press the PM5 button to begin.')
-      try {
-        pm5.disconnect()
-      } catch (disconnectError) {
-        setCommandLog((previous) => appendCommandHistory(previous, `[error] Error during disconnect: ${disconnectError instanceof Error ? disconnectError.message : String(disconnectError)}`))
+      if (stayConnected) {
+        const startedAt = new Date().toISOString()
+        setIsMonitoringWorkout(true)
+        setStatus('Workout sent. Stay on this page — the result uploads to your Concept2 Logbook once you finish rowing.')
+
+        const handleWorkoutSummary = async (summary: Record<string, unknown>) => {
+          pm5.workoutSummaryDataEvent.unsub(handleWorkoutSummary)
+          await uploadWorkoutSummary(summary, startedAt)
+          setIsMonitoringWorkout(false)
+          setIsConnected(false)
+          try {
+            pm5.disconnect()
+          } catch (disconnectError) {
+            setCommandLog((previous) => appendCommandHistory(previous, `[error] Error during disconnect: ${disconnectError instanceof Error ? disconnectError.message : String(disconnectError)}`))
+          }
+        }
+        pm5.workoutSummaryDataEvent.sub(window, handleWorkoutSummary)
+      } else {
+        setStatus('Workout sent. Check the PM5 and press the PM5 button to begin.')
+        setIsConnected(false)
+        try {
+          pm5.disconnect()
+        } catch (disconnectError) {
+          setCommandLog((previous) => appendCommandHistory(previous, `[error] Error during disconnect: ${disconnectError instanceof Error ? disconnectError.message : String(disconnectError)}`))
+        }
       }
     } catch (caughtError) {
       const message = caughtError instanceof Error ? caughtError.message : String(caughtError)
@@ -448,6 +509,8 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
       setCommandLog((previous) => appendCommandHistory(previous, `[diag] PM5 connection state before disconnect: ${pm5?.connectionState ?? 'unknown'}`))
       setError(`Could not send the workout: ${message}. Reconnect and try again.`)
       setStatus('Workout transmission failed.')
+      setIsMonitoringWorkout(false)
+      setIsConnected(false)
       try {
         pm5.disconnect()
       } catch (disconnectError) {
@@ -455,7 +518,6 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
       }
     } finally {
       setIsSending(false)
-      setIsConnected(false)
     }
   }
 
@@ -474,24 +536,42 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
         {workout.workout_code} · {orderedIntervals.length} interval{orderedIntervals.length === 1 ? '' : 's'}
       </p>
 
+      <label className="pm5-workout-sender-stay-connected">
+        <input
+          type="checkbox"
+          checked={stayConnected}
+          onChange={(event) => setStayConnected(event.target.checked)}
+          disabled={isSending || isMonitoringWorkout}
+        />
+        Stay connected and upload result to C2 logbook
+      </label>
+
+      {stayConnected && concept2Connected === false && (
+        <p className="pm5-workout-sender-status">
+          <a href={`${API_BASE_URL}/auth/concept2/login`}>Connect to Concept2 Logbook</a> to enable uploading.
+        </p>
+      )}
+
       <div className="pm5-workout-sender-actions">
         <button
           type="button"
           onClick={connectPm5}
-          disabled={isSending || !window.ergometer?.ble?.hasWebBlueTooth?.()}
+          disabled={isSending || isMonitoringWorkout || !window.ergometer?.ble?.hasWebBlueTooth?.()}
         >
           Connect PM5
         </button>
         <button
           type="button"
           onClick={sendWorkoutToPm5}
-          disabled={!estimated2kSeconds || estimated2kSeconds <= 0 || !pm5 || !isConnected || isSending || orderedIntervals.length === 0}
+          disabled={!estimated2kSeconds || estimated2kSeconds <= 0 || !pm5 || !isConnected || isSending || isMonitoringWorkout || orderedIntervals.length === 0}
         >
           Send workout to PM5
         </button>
       </div>
 
       {status && <p className="pm5-workout-sender-status" role="status">{status}</p>}
+
+      {uploadStatus && <p className="pm5-workout-sender-status" role="status">{uploadStatus}</p>}
 
       {error && (
         <p className="pm5-workout-sender-error" role="alert">

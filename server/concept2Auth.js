@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import express from 'express'
 import { pool } from './db.js'
 
 const CONCEPT2_AUTHORIZE_URL = 'https://log.concept2.com/oauth/authorize'
@@ -135,6 +136,89 @@ export function registerConcept2Routes(app) {
       res.status(500).json({ error: 'Failed to load Concept2 connection status.' })
     }
   })
+
+  app.post('/api/logbook/results', express.json({ limit: '64kb' }), async (req, res) => {
+    const deviceId = req.cookies?.[DEVICE_COOKIE_NAME]
+    if (!deviceId) {
+      return res.status(401).json({ error: 'No Concept2 account is linked to this device.' })
+    }
+
+    const payload = buildResultPayload(req.body)
+    if (!payload) {
+      return res.status(400).json({ error: 'distance and time are required and must be positive numbers.' })
+    }
+
+    try {
+      const connection = await getConcept2Connection(deviceId)
+      if (!connection) {
+        return res.status(401).json({ error: 'No Concept2 account is linked to this device.' })
+      }
+
+      const response = await fetch(`${CONCEPT2_API_BASE}/users/${connection.concept2UserId}/results`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${connection.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const responseBody = await response.json().catch(() => null)
+      if (!response.ok) {
+        console.error('Concept2 result upload rejected:', response.status, responseBody)
+        return res.status(502).json({ error: 'Concept2 rejected the result.', details: responseBody })
+      }
+
+      res.status(201).json({ result: responseBody })
+    } catch (err) {
+      console.error('Failed to upload result to Concept2:', err)
+      res.status(500).json({ error: 'Failed to upload result to Concept2.' })
+    }
+  })
+}
+
+// Maps a PM5 workout-summary payload (see ergometer.js workoutSummaryDataEvent) to a Concept2
+// result. Field names follow Concept2's published Result API shape; verify against the actual
+// response the first time this runs, since it can only be confirmed against the live API.
+function buildResultPayload(summary) {
+  const distance = Number(summary?.distance)
+  const timeSeconds = Number(summary?.elapsedTime) / 1000
+  if (!Number.isFinite(distance) || distance <= 0 || !Number.isFinite(timeSeconds) || timeSeconds <= 0) {
+    return null
+  }
+
+  const payload = {
+    type: 'rower',
+    date: summary?.startedAt ?? new Date().toISOString(),
+    distance: Math.round(distance),
+    time: Math.round(timeSeconds * 10) / 10,
+  }
+
+  if (Number.isFinite(Number(summary?.averageStrokeRate))) {
+    payload.stroke_rate = Math.round(Number(summary.averageStrokeRate))
+  }
+  if (Number.isFinite(Number(summary?.averageHeartrate)) && Number(summary.averageHeartrate) > 0) {
+    payload.heart_rate = {
+      average: Math.round(Number(summary.averageHeartrate)),
+      ...(Number(summary?.maxHeartrate) > 0 ? { max: Math.round(Number(summary.maxHeartrate)) } : {}),
+      ...(Number(summary?.minHeartrate) > 0 ? { min: Math.round(Number(summary.minHeartrate)) } : {}),
+    }
+  }
+  if (Number.isFinite(Number(summary?.dragFactorAverage))) {
+    payload.drag_factor = Math.round(Number(summary.dragFactorAverage))
+  }
+
+  return payload
+}
+
+async function getConcept2Connection(deviceId) {
+  const { rows } = await pool.query('SELECT concept2_user_id FROM concept2_tokens WHERE device_id = $1', [deviceId])
+  if (rows.length === 0) return null
+
+  const accessToken = await getValidConcept2AccessToken(deviceId)
+  if (!accessToken) return null
+
+  return { accessToken, concept2UserId: rows[0].concept2_user_id }
 }
 
 // Returns a usable access token for the device, refreshing it first if it has expired.
