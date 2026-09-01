@@ -1,8 +1,10 @@
 import express from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import { timingSafeEqual } from 'node:crypto'
 import { pool } from './db.js'
 import { groupWorkouts, parseWorkoutCsv } from './csvImport.js'
+import { registerConcept2Routes } from './concept2Auth.js'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -17,9 +19,14 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN ?? '')
 app.use(
   cors({
     origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+    // Required so the browser sends/receives the Concept2 device-id cookie cross-origin.
+    credentials: true,
   })
 )
+app.use(cookieParser())
 app.use(express.text({ type: ['text/csv', 'text/plain'], limit: '2mb' }))
+
+registerConcept2Routes(app)
 
 function hasValidImportToken(request) {
   const configuredToken = process.env.IMPORT_TOKEN

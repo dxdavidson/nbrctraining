@@ -40,7 +40,19 @@ erDiagram
 		string target_mode
 		float target_value
 	}
+	CONCEPT2_TOKENS {
+        uuid id PK
+        uuid device_id
+        string concept2_user_id
+        string access_token
+        string refresh_token
+        datetime expires_at
+        datetime created_at
+        datetime updated_at
+	}
 	PLANS ||--o{ BLOCKS : contains
 	BLOCKS ||--o{ WORKOUTS : contains
 	WORKOUTS ||--o{ INTERVALS : contains
 ```
+
+`CONCEPT2_TOKENS` is standalone (no FK to the plan/block/workout hierarchy) — `device_id` is a random identifier issued in a browser cookie when an athlete links their Concept2 account, since the app has no separate login system.

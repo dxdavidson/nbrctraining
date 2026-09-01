@@ -54,3 +54,15 @@ CREATE TABLE intervals (
 CREATE INDEX idx_blocks_plan_id ON blocks (plan_id);
 CREATE INDEX idx_workouts_block_id ON workouts (block_id);
 CREATE INDEX idx_intervals_workout_id ON intervals (workout_id);
+
+CREATE TABLE concept2_tokens (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    device_id         UUID NOT NULL,
+    concept2_user_id  TEXT NOT NULL,
+    access_token      TEXT NOT NULL,
+    refresh_token     TEXT NOT NULL,
+    expires_at        TIMESTAMPTZ NOT NULL,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_concept2_tokens_device_id UNIQUE (device_id)
+);
