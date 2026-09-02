@@ -26,6 +26,7 @@ CREATE TABLE blocks (
 CREATE TABLE workouts (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     block_id        UUID NOT NULL REFERENCES blocks (id) ON DELETE CASCADE,
+    wk_type         TEXT,
     workout_code    TEXT NOT NULL,
     week_commencing DATE,
     description     TEXT,
@@ -58,6 +59,7 @@ CREATE INDEX idx_intervals_workout_id ON intervals (workout_id);
 CREATE TABLE concept2_tokens (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     device_id         UUID NOT NULL,
+    concept2_environment TEXT NOT NULL,
     concept2_user_id  TEXT NOT NULL,
     concept2_user_name TEXT,
     access_token      TEXT NOT NULL,

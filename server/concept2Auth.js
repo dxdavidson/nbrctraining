@@ -2,20 +2,35 @@ import { randomUUID } from 'node:crypto'
 import express from 'express'
 import { pool } from './db.js'
 
-const CONCEPT2_AUTHORIZE_URL = 'https://log.concept2.com/oauth/authorize'
-const CONCEPT2_TOKEN_URL = 'https://log.concept2.com/oauth/access_token'
-const CONCEPT2_API_BASE = 'https://log.concept2.com/api'
+const CONCEPT2_ENDPOINTS = {
+  development: {
+    authorizeUrl: 'https://log-dev.concept2.com/oauth/authorize',
+    tokenUrl: 'https://log-dev.concept2.com/oauth/access_token',
+    apiBaseUrl: 'https://log-dev.concept2.com/api',
+  },
+  production: {
+    authorizeUrl: 'https://log.concept2.com/oauth/authorize',
+    tokenUrl: 'https://log.concept2.com/oauth/access_token',
+    apiBaseUrl: 'https://log.concept2.com/api',
+  },
+}
 const CONCEPT2_SCOPES = 'user:read,results:write'
 const DEVICE_COOKIE_NAME = 'c2_device_id'
 const DEVICE_COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 365
 
 function requireConcept2Config(res) {
   const { CONCEPT2_CLIENT_ID, CONCEPT2_CLIENT_SECRET, CONCEPT2_REDIRECT_URI, CONCEPT2_FRONTEND_URL } = process.env
+  const environment = process.env.CONCEPT2_LOGBOOK_ENVIRONMENT ?? 'development'
+  const endpoints = CONCEPT2_ENDPOINTS[environment]
   if (!CONCEPT2_CLIENT_ID || !CONCEPT2_CLIENT_SECRET || !CONCEPT2_REDIRECT_URI || !CONCEPT2_FRONTEND_URL) {
     res.status(503).json({ error: 'Concept2 integration is not configured on the server.' })
     return null
   }
-  return { CONCEPT2_CLIENT_ID, CONCEPT2_CLIENT_SECRET, CONCEPT2_REDIRECT_URI, CONCEPT2_FRONTEND_URL }
+  if (!endpoints) {
+    res.status(503).json({ error: 'CONCEPT2_LOGBOOK_ENVIRONMENT must be development or production.' })
+    return null
+  }
+  return { CONCEPT2_CLIENT_ID, CONCEPT2_CLIENT_SECRET, CONCEPT2_REDIRECT_URI, CONCEPT2_FRONTEND_URL, environment, endpoints }
 }
 
 function setDeviceCookie(res, deviceId) {
@@ -37,7 +52,7 @@ function clearDeviceCookie(res) {
 }
 
 async function exchangeCodeForTokens(config, code) {
-  const response = await fetch(CONCEPT2_TOKEN_URL, {
+  const response = await fetch(config.endpoints.tokenUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -65,8 +80,8 @@ function getConcept2UserDisplayName(user) {
   return values.find((value) => typeof value === 'string' && value.trim())?.trim() ?? null
 }
 
-async function fetchConcept2User(accessToken) {
-  const response = await fetch(`${CONCEPT2_API_BASE}/users/me`, {
+async function fetchConcept2User(config, accessToken) {
+  const response = await fetch(`${config.endpoints.apiBaseUrl}/users/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
   if (!response.ok) {
@@ -80,18 +95,18 @@ async function fetchConcept2User(accessToken) {
   }
 }
 
-async function upsertTokens(deviceId, concept2User, tokens) {
+async function upsertTokens(deviceId, concept2User, tokens, environment) {
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)
   await pool.query(
-    `INSERT INTO concept2_tokens (device_id, concept2_user_id, concept2_user_name, access_token, refresh_token, expires_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, now())
+    `INSERT INTO concept2_tokens (device_id, concept2_environment, concept2_user_id, concept2_user_name, access_token, refresh_token, expires_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, now())
      ON CONFLICT (device_id) DO UPDATE
-     SET concept2_user_id = EXCLUDED.concept2_user_id, concept2_user_name = EXCLUDED.concept2_user_name,
+     SET concept2_environment = EXCLUDED.concept2_environment, concept2_user_id = EXCLUDED.concept2_user_id, concept2_user_name = EXCLUDED.concept2_user_name,
          access_token = EXCLUDED.access_token,
          refresh_token = EXCLUDED.refresh_token,
          expires_at = EXCLUDED.expires_at,
          updated_at = now()`,
-    [deviceId, concept2User.userId, concept2User.userName, tokens.access_token, tokens.refresh_token, expiresAt]
+    [deviceId, environment, concept2User.userId, concept2User.userName, tokens.access_token, tokens.refresh_token, expiresAt]
   )
 }
 
@@ -104,7 +119,7 @@ export function registerConcept2Routes(app) {
     const deviceId = req.cookies?.[DEVICE_COOKIE_NAME] ?? randomUUID()
     setDeviceCookie(res, deviceId)
 
-    const authorizeUrl = new URL(CONCEPT2_AUTHORIZE_URL)
+    const authorizeUrl = new URL(config.endpoints.authorizeUrl)
     authorizeUrl.searchParams.set('client_id', config.CONCEPT2_CLIENT_ID)
     authorizeUrl.searchParams.set('redirect_uri', config.CONCEPT2_REDIRECT_URI)
     authorizeUrl.searchParams.set('response_type', 'code')
@@ -131,8 +146,8 @@ export function registerConcept2Routes(app) {
 
     try {
       const tokens = await exchangeCodeForTokens(config, code)
-      const concept2User = await fetchConcept2User(tokens.access_token)
-      await upsertTokens(deviceId, concept2User, tokens)
+      const concept2User = await fetchConcept2User(config, tokens.access_token)
+      await upsertTokens(deviceId, concept2User, tokens, config.environment)
       res.redirect(`${config.CONCEPT2_FRONTEND_URL}?concept2=connected`)
     } catch (err) {
       console.error('Concept2 OAuth callback failed:', err)
@@ -141,15 +156,18 @@ export function registerConcept2Routes(app) {
   })
 
   app.get('/api/concept2/status', async (req, res) => {
+    const config = requireConcept2Config(res)
+    if (!config) return
     const deviceId = req.cookies?.[DEVICE_COOKIE_NAME]
     if (!deviceId) {
       return res.json({ connected: false })
     }
 
     try {
-      const { rows } = await pool.query('SELECT concept2_user_id, concept2_user_name FROM concept2_tokens WHERE device_id = $1', [
-        deviceId,
-      ])
+      const { rows } = await pool.query(
+        'SELECT concept2_user_id, concept2_user_name FROM concept2_tokens WHERE device_id = $1 AND concept2_environment = $2',
+        [deviceId, config.environment]
+      )
       if (rows.length === 0) {
         return res.json({ connected: false })
       }
@@ -181,6 +199,8 @@ export function registerConcept2Routes(app) {
   })
 
   app.post('/api/logbook/results', express.json({ limit: '64kb' }), async (req, res) => {
+    const config = requireConcept2Config(res)
+    if (!config) return
     const deviceId = req.cookies?.[DEVICE_COOKIE_NAME]
     if (!deviceId) {
       return res.status(401).json({ error: 'No Concept2 account is linked to this device.' })
@@ -192,12 +212,12 @@ export function registerConcept2Routes(app) {
     }
 
     try {
-      const connection = await getConcept2Connection(deviceId)
+      const connection = await getConcept2Connection(deviceId, config)
       if (!connection) {
         return res.status(401).json({ error: 'No Concept2 account is linked to this device.' })
       }
 
-      const response = await fetch(`${CONCEPT2_API_BASE}/users/${connection.concept2UserId}/results`, {
+      const response = await fetch(`${config.endpoints.apiBaseUrl}/users/${connection.concept2UserId}/results`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${connection.accessToken}`,
@@ -254,21 +274,24 @@ function buildResultPayload(summary) {
   return payload
 }
 
-async function getConcept2Connection(deviceId) {
-  const { rows } = await pool.query('SELECT concept2_user_id FROM concept2_tokens WHERE device_id = $1', [deviceId])
+async function getConcept2Connection(deviceId, config) {
+  const { rows } = await pool.query('SELECT concept2_user_id FROM concept2_tokens WHERE device_id = $1 AND concept2_environment = $2', [
+    deviceId,
+    config.environment,
+  ])
   if (rows.length === 0) return null
 
-  const accessToken = await getValidConcept2AccessToken(deviceId)
+  const accessToken = await getValidConcept2AccessToken(deviceId, config)
   if (!accessToken) return null
 
   return { accessToken, concept2UserId: rows[0].concept2_user_id }
 }
 
 // Returns a usable access token for the device, refreshing it first if it has expired.
-export async function getValidConcept2AccessToken(deviceId) {
+export async function getValidConcept2AccessToken(deviceId, config) {
   const { rows } = await pool.query(
-    'SELECT access_token, refresh_token, expires_at FROM concept2_tokens WHERE device_id = $1',
-    [deviceId]
+    'SELECT access_token, refresh_token, expires_at FROM concept2_tokens WHERE device_id = $1 AND concept2_environment = $2',
+    [deviceId, config.environment]
   )
   if (rows.length === 0) return null
 
@@ -278,13 +301,12 @@ export async function getValidConcept2AccessToken(deviceId) {
     return row.access_token
   }
 
-  const { CONCEPT2_CLIENT_ID, CONCEPT2_CLIENT_SECRET } = process.env
-  const response = await fetch(CONCEPT2_TOKEN_URL, {
+  const response = await fetch(config.endpoints.tokenUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: CONCEPT2_CLIENT_ID,
-      client_secret: CONCEPT2_CLIENT_SECRET,
+      client_id: config.CONCEPT2_CLIENT_ID,
+      client_secret: config.CONCEPT2_CLIENT_SECRET,
       grant_type: 'refresh_token',
       refresh_token: row.refresh_token,
     }),

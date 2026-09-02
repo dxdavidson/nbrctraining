@@ -8,6 +8,7 @@ describe('Pm5WorkoutSender', () => {
   const workout: Workout = {
     id: 'w1',
     block_id: 'b1',
+    wk_type: null,
     workout_code: 'WC1',
     week_commencing: null,
     description: 'Test workout',

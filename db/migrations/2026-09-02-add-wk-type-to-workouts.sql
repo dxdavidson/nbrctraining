@@ -1,0 +1,2 @@
+ALTER TABLE workouts
+ADD COLUMN wk_type TEXT;

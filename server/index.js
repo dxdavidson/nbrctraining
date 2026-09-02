@@ -100,7 +100,7 @@ app.get('/api/workouts', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      'SELECT id, block_id, workout_code, week_commencing, description, sort_order, level FROM workouts WHERE block_id = $1 ORDER BY sort_order NULLS LAST, week_commencing',
+      'SELECT id, block_id, wk_type, workout_code, week_commencing, description, sort_order, level FROM workouts WHERE block_id = $1 ORDER BY sort_order NULLS LAST, week_commencing',
       [blockId]
     )
     res.json(rows)
@@ -149,6 +149,7 @@ app.post('/api/admin/import/workouts', async (req, res) => {
   try {
     await client.query('BEGIN')
     const workoutGroups = groupWorkouts(rows)
+    const intervalCount = workoutGroups.reduce((count, group) => count + group.intervals.length, 0)
     const blockIds = new Map()
 
     for (const group of workoutGroups) {
@@ -182,11 +183,12 @@ app.post('/api/admin/import/workouts', async (req, res) => {
       const blockId = blockIds.get(`${group.workout.plan_code}\u0000${group.workout.block_code}`)
 
       const { rows: workoutRows } = await client.query(
-        `INSERT INTO workouts (block_id, workout_code, week_commencing, description, sort_order, level)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO workouts (block_id, wk_type, workout_code, week_commencing, description, sort_order, level)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id`,
         [
           blockId,
+          group.workout.wk_type,
           group.workout.workout_code,
           group.workout.week_commencing,
           group.workout.description,
@@ -231,7 +233,7 @@ app.post('/api/admin/import/workouts', async (req, res) => {
       delete_existing_blocks: deleteExistingBlocks,
       rows: rows.length,
       workouts: workoutGroups.length,
-      intervals: rows.length,
+      intervals: intervalCount,
       deleted_workouts: deletedWorkouts,
       imported_workouts: dryRun ? [] : workoutGroups.map((group) => ({
         plan_code: group.workout.plan_code,

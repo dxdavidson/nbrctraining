@@ -20,6 +20,7 @@ erDiagram
 	WORKOUTS {
         uuid id PK
         uuid block_id FK		
+		string wk_type
 		string workout_code
 		date week_commencing
 		string description

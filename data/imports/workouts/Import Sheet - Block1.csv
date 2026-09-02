@@ -1,170 +1,171 @@
-plan_code,block_code,workout_code,week_commencing,description,sort_order,level,interval_code,interval_order,repeat_count,work_kind,work_value,spm,recovery_kind,recovery_value,target_mode,target_value
-P2026_2027,B1,W1S1,2026-10-04,Block Baseline 30R20 30' rowed at 20spm,1,L1,W1S1_1,1,1,time,1800,20,,,,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+plan_code,block_code,wk_type,workout_code,week_commencing,description,sort_order,level,interval_code,interval_order,repeat_count,work_kind,work_value,spm,recovery_kind,recovery_value,target_mode,target_value
+P2026_2027,B1,Ergo,W1S1,2026-10-04,Block Baseline 30R20 30' rowed at 20spm,1,L1,W1S1_1,1,1,time,1800,20,,,,
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_1,1,1,time,120,18,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_2,2,1,time,120,20,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_3,3,1,time,120,18,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_4,4,1,time,120,20,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_5,5,1,time,120,18,time,120,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_6,6,1,time,120,18,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_7,7,1,time,120,20,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_8,8,1,time,120,18,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_9,9,1,time,120,20,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_10,10,1,time,120,18,time,120,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_11,11,1,time,120,18,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_12,12,1,time,120,20,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_13,13,1,time,120,18,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_14,14,1,time,120,20,,,L4,
-P2026_2027,B1,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
+P2026_2027,B1,Ergo,W1S2,2026-10-04,"3×10' @R18–20, 2' rest
 Stick to stroke rate, pace is a guide",2,L4,W1S2_15,15,1,time,120,18,time,120,L4,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_1,1,1,time,120,18,,,L4,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_2,2,1,time,120,20,,,L4,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_3,3,1,time,120,18,,,L4,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_4,4,1,time,120,20,,,L4,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_5,5,1,time,120,18,,,L4,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_6,6,1,time,120,20,time,120,L4,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_7,7,4,time,120,,time,120,L2,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_8,8,1,time,120,18,,,L4,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_9,9,1,time,120,20,,,L4,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_10,10,1,time,120,18,,,L4,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_11,11,1,time,120,20,,,L4,
-P2026_2027,B1,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
+P2026_2027,B1,Ergo,W1S3,2026-10-04,"12' L4 @ R18–20 (stick to rate)
 2' rest
 8' L2: 4 × 2' @ R26–28 2' recovery between intervals (stick to pace)
 10' L4 @ R18–20 (stick to rate)",3,"L4,L2,L4",W1S3_12,12,1,time,120,18,,,L4,
-P2026_2027,B1,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_1,1,1,time,480,18,time,60,L4,
-P2026_2027,B1,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_2,2,1,time,420,20,time,60,L4,
-P2026_2027,B1,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_3,3,1,time,360,18,time,60,L4,
-P2026_2027,B1,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_4,4,1,time,300,20,time,60,L4,
-P2026_2027,B1,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_5,5,1,time,240,18,time,60,L4,
-P2026_2027,B1,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_6,6,1,time,180,20,time,60,L4,
-P2026_2027,B1,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_7,7,1,time,120,18,time,60,L4,
-P2026_2027,B1,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_8,8,1,time,60,20,time,60,L4,
-P2026_2027,B1,W2S2,2026-10-11,"20' @ L3,  2' rest, 10' @ L3 (or strong L4)",,L3,W2S2_1,1,2,time,1200,,time,120,L3,
-P2026_2027,B1,W2S2,2026-10-11,"20' @ L3,  2' rest, 10' @ L3 (or strong L4)",,L3,W2S2_2,2,2,time,600,,,,L3,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_1,1,1,time,150,18,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_2,2,1,time,150,20,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_3,3,1,time,45,,,,L2,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_4,4,1,time,150,18,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_5,5,1,time,150,20,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_6,6,1,time,45,,,,L2,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_7,7,1,time,150,18,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_8,8,1,time,150,20,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_9,9,1,time,45,,,,L2,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_10,10,1,time,150,18,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_11,11,1,time,150,20,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_12,12,1,time,45,,,,L2,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_13,13,1,time,150,18,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_14,14,1,time,150,20,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_15,15,1,time,45,,,,L2,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_16,16,1,time,150,18,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_17,17,1,time,150,20,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_18,18,1,time,45,,,,L2,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_19,19,1,time,150,18,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_20,20,1,time,150,20,,,L4,
-P2026_2027,B1,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_21,21,1,time,45,,,,L2,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,OTW,W1_OTW1,2026-10-04,45' @R20,4,,,,,,,,,,,
+P2026_2027,B1,Ergo,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_1,1,1,time,480,18,time,60,L4,
+P2026_2027,B1,Ergo,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_2,2,1,time,420,20,time,60,L4,
+P2026_2027,B1,Ergo,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_3,3,1,time,360,18,time,60,L4,
+P2026_2027,B1,Ergo,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_4,4,1,time,300,20,time,60,L4,
+P2026_2027,B1,Ergo,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_5,5,1,time,240,18,time,60,L4,
+P2026_2027,B1,Ergo,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_6,6,1,time,180,20,time,60,L4,
+P2026_2027,B1,Ergo,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_7,7,1,time,120,18,time,60,L4,
+P2026_2027,B1,Ergo,W2S1,2026-10-11,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest) (stick to rate),,L4,W2S1_8,8,1,time,60,20,time,60,L4,
+P2026_2027,B1,Ergo,W2S2,2026-10-11,"20' @ L3,  2' rest, 10' @ L3 (or strong L4)",,L3,W2S2_1,1,2,time,1200,,time,120,L3,
+P2026_2027,B1,Ergo,W2S2,2026-10-11,"20' @ L3,  2' rest, 10' @ L3 (or strong L4)",,L3,W2S2_2,2,2,time,600,,,,L3,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_1,1,1,time,150,18,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_2,2,1,time,150,20,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_3,3,1,time,45,,,,L2,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_4,4,1,time,150,18,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_5,5,1,time,150,20,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_6,6,1,time,45,,,,L2,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_7,7,1,time,150,18,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_8,8,1,time,150,20,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_9,9,1,time,45,,,,L2,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_10,10,1,time,150,18,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_11,11,1,time,150,20,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_12,12,1,time,45,,,,L2,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_13,13,1,time,150,18,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_14,14,1,time,150,20,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_15,15,1,time,45,,,,L2,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_16,16,1,time,150,18,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_17,17,1,time,150,20,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_18,18,1,time,45,,,,L2,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_19,19,1,time,150,18,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_20,20,1,time,150,20,,,L4,
+P2026_2027,B1,Ergo,W2S3,2026-10-11,40:15' @ L4 with 45 sec @ L2 every 5 minutes,,"L4,L2,L4",W2S3_21,21,1,time,45,,,,L2,
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_1,1,1,time,120,18,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_2,2,1,time,120,20,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_3,3,1,time,120,18,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_4,4,1,time,120,20,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_5,5,1,time,120,18,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_6,6,1,time,120,20,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_7,7,1,time,120,18,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_8,8,1,time,120,20,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_9,9,1,time,120,18,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_10,10,1,time,120,20,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_11,11,1,time,120,18,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_12,12,1,time,120,20,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_13,13,1,time,120,18,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_14,14,1,time,120,20,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_15,15,1,time,120,18,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_16,16,1,time,120,20,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_17,17,1,time,120,18,,,L4,
-P2026_2027,B1,W3S1,2026-10-18,"36' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S1,2026-10-18,"36' @ L4 (R18–20)
 Stick to stroke rate, pace is a guide",,L4,W3S1_18,18,1,time,120,20,,,L4,
-P2026_2027,B1,W3S2,2026-10-18,"3 × 10' @ L3 (2' rest)
+P2026_2027,B1,Ergo,W3S2,2026-10-18,"3 × 10' @ L3 (2' rest)
 Stick to pace",,L3,W3S2_1,1,3,time,600,,time,120,L3,
-P2026_2027,B1,W3S3,2026-10-18,"10' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S3,2026-10-18,"10' @ L4 (R18–20)
 1'–2'–3'–2'–1' @ L2 (equal rest)
 10' @ L4 (R18–20)",,"L4,L2,L4",W3S3_1,1,1,time,600,19,,,L4,
-P2026_2027,B1,W3S3,2026-10-18,"10' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S3,2026-10-18,"10' @ L4 (R18–20)
 1'–2'–3'–2'–1' @ L2 (equal rest)
 10' @ L4 (R18–20)",,"L4,L2,L4",W3S3_2,2,1,time,60,,time,60,L2,
-P2026_2027,B1,W3S3,2026-10-18,"10' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S3,2026-10-18,"10' @ L4 (R18–20)
 1'–2'–3'–2'–1' @ L2 (equal rest)
 10' @ L4 (R18–20)",,"L4,L2,L4",W3S3_3,3,1,time,120,,time,120,L2,
-P2026_2027,B1,W3S3,2026-10-18,"10' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S3,2026-10-18,"10' @ L4 (R18–20)
 1'–2'–3'–2'–1' @ L2 (equal rest)
 10' @ L4 (R18–20)",,"L4,L2,L4",W3S3_4,4,1,time,180,,time,180,L2,
-P2026_2027,B1,W3S3,2026-10-18,"10' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S3,2026-10-18,"10' @ L4 (R18–20)
 1'–2'–3'–2'–1' @ L2 (equal rest)
 10' @ L4 (R18–20)",,"L4,L2,L4",W3S3_5,5,1,time,120,,time,120,L2,
-P2026_2027,B1,W3S3,2026-10-18,"10' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S3,2026-10-18,"10' @ L4 (R18–20)
 1'–2'–3'–2'–1' @ L2 (equal rest)
 10' @ L4 (R18–20)",,"L4,L2,L4",W3S3_6,6,1,time,60,,time,60,L2,
-P2026_2027,B1,W3S3,2026-10-18,"10' @ L4 (R18–20)
+P2026_2027,B1,Ergo,W3S3,2026-10-18,"10' @ L4 (R18–20)
 1'–2'–3'–2'–1' @ L2 (equal rest)
 10' @ L4 (R18–20)",,"L4,L2,L4",W3S3_7,7,1,time,600,19,,,L4,

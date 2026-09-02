@@ -1,19 +1,14 @@
 const REQUIRED_COLUMNS = [
   'plan_code',
   'block_code',
+  'wk_type',
   'workout_code',
-  'interval_code',
-  'interval_order',
-  'repeat_count',
-  'work_kind',
-  'work_value',
-  'recovery_kind',
-  'recovery_value',
 ]
 
 const INTEGER_COLUMNS = ['interval_order', 'repeat_count', 'work_value', 'spm']
 const NUMBER_COLUMNS = ['recovery_value', 'target_value']
 const ALLOWED_WORK_KINDS = new Set(['distance', 'time'])
+const INTERVAL_COLUMNS = ['interval_code', 'interval_order', 'repeat_count', 'work_kind', 'work_value', 'spm', 'recovery_kind', 'recovery_value', 'target_mode', 'target_value']
 
 function parseCsvLine(line) {
   const values = []
@@ -119,8 +114,18 @@ export function parseWorkoutCsv(csvText) {
       row[column] = parseNumber(row[column], column, lineIndex + 2, false)
     }
 
-    if (!row.plan_code || !row.block_code || !row.workout_code || !row.interval_code) {
-      throw new Error(`Row ${lineIndex + 2}: plan_code, block_code, workout_code, and interval_code are required.`)
+    if (!row.plan_code || !row.block_code || !row.wk_type || !row.workout_code) {
+      throw new Error(`Row ${lineIndex + 2}: plan_code, block_code, wk_type, and workout_code are required.`)
+    }
+
+    const hasIntervalData = INTERVAL_COLUMNS.some((column) => row[column] !== null)
+    if (row.wk_type === 'OTW' && !hasIntervalData) {
+      row.has_interval = false
+      return row
+    }
+
+    if (!row.interval_code) {
+      throw new Error(`Row ${lineIndex + 2}: interval_code is required unless wk_type is OTW with no interval data.`)
     }
     if (!Number.isInteger(row.interval_order) || row.interval_order < 1) {
       throw new Error(`Row ${lineIndex + 2}: interval_order must be a positive integer.`)
@@ -132,6 +137,7 @@ export function parseWorkoutCsv(csvText) {
       throw new Error(`Row ${lineIndex + 2}: work_kind must be distance or time.`)
     }
 
+    row.has_interval = true
     return row
   })
 
@@ -139,7 +145,7 @@ export function parseWorkoutCsv(csvText) {
     throw new Error('CSV contains a header but no data rows.')
   }
 
-  const workoutFields = ['plan_code', 'block_code', 'week_commencing', 'description', 'sort_order', 'level']
+  const workoutFields = ['plan_code', 'block_code', 'wk_type', 'week_commencing', 'description', 'sort_order', 'level']
   const workoutValues = new Map()
   const intervalKeys = new Set()
   for (const row of rows) {
@@ -151,11 +157,13 @@ export function parseWorkoutCsv(csvText) {
     }
     workoutValues.set(workoutKey, currentWorkout)
 
-    const intervalKey = `${workoutKey}\u0000${row.interval_code}`
-    if (intervalKeys.has(intervalKey)) {
-      throw new Error(`Workout ${row.workout_code} contains duplicate interval_code ${row.interval_code}.`)
+    if (row.has_interval) {
+      const intervalKey = `${workoutKey}\u0000${row.interval_code}`
+      if (intervalKeys.has(intervalKey)) {
+        throw new Error(`Workout ${row.workout_code} contains duplicate interval_code ${row.interval_code}.`)
+      }
+      intervalKeys.add(intervalKey)
     }
-    intervalKeys.add(intervalKey)
   }
 
   return rows
@@ -168,7 +176,9 @@ export function groupWorkouts(rows) {
     if (!workouts.has(key)) {
       workouts.set(key, { key, workout: row, intervals: [] })
     }
-    workouts.get(key).intervals.push(row)
+    if (row.has_interval) {
+      workouts.get(key).intervals.push(row)
+    }
   }
   return [...workouts.values()]
 }

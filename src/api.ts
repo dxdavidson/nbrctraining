@@ -19,6 +19,7 @@ export interface Block {
 export interface Workout {
   id: string
   block_id: string
+  wk_type: string | null
   workout_code: string
   week_commencing: string | null
   description: string | null

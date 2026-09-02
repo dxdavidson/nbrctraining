@@ -110,6 +110,28 @@ IMPORT_TOKEN=<a long random secret>
 CLIENT_ORIGIN=https://nbrowingclub.com
 ```
 
+### Configure Concept2 Logbook OAuth
+
+To enable Logbook uploads, add these variables to the Railway Express service. The client ID and secret are from the Concept2 developer key configuration.
+
+```dotenv
+CONCEPT2_CLIENT_ID=<Concept2 API key>
+CONCEPT2_CLIENT_SECRET=<Concept2 API secret>
+CONCEPT2_LOGBOOK_ENVIRONMENT=development
+CONCEPT2_REDIRECT_URI=https://your-server-production.up.railway.app/auth/concept2/callback
+CONCEPT2_FRONTEND_URL=https://nbrowingclub.com/training
+```
+
+Use `CONCEPT2_LOGBOOK_ENVIRONMENT=development` while testing result uploads. This is the default when unset and uses `https://log-dev.concept2.com` for authorization, tokens, and API calls. Use `production` only after Concept2 has approved live Logbook writes; it uses `https://log.concept2.com`.
+
+Register the matching API key and callback endpoint on the selected Concept2 environment: `https://log-dev.concept2.com/developers/keys` for development or `https://log.concept2.com/developers/keys` for production. Set the Callback endpoint to the exact same URL as `CONCEPT2_REDIRECT_URI`:
+
+```text
+https://your-server-production.up.railway.app/auth/concept2/callback
+```
+
+The callback endpoint is the Railway API URL, not the training frontend URL. The values must match exactly, including the `https` scheme and path. After changing `CONCEPT2_LOGBOOK_ENVIRONMENT`, connect the Logbook account again so the app obtains a token for that environment.
+
 Create `.env.production` in the repository root and set the public API domain. This is the domain the browser calls for plan data; do not use the Railway PostgreSQL hostname or add `/training` to it:
 
 ```dotenv

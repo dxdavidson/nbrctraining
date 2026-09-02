@@ -51,9 +51,9 @@
   max-height: min(80vh, 32rem);
   display: flex;
   flex-direction: column;
-  background: var(--surface, #222);
-  color: var(--text, #fff);
-  border: 1px solid var(--border);
+  background: #42155f;
+  color: #fbf8ff;
+  border: 1px solid #d9b4ff;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
@@ -64,9 +64,9 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #d9b4ff;
   font-weight: 600;
-  color: var(--text-h);
+  color: #ffffff;
 }
 
 .header-tooltip-close {
