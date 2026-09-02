@@ -1,0 +1,73 @@
+plan_code,block_code,wk_type,workout_code,week_commencing,description,sort_order,level,interval_code,interval_order,repeat_count,work_kind,work_value,spm,recovery_kind,recovery_value,target_mode,target_value
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_1,1,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_2,2,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_3,3,1,distance,250,,time,120,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_4,4,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_5,5,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_6,6,1,distance,250,,time,120,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_7,7,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_8,8,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_9,9,1,distance,250,,time,120,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_10,10,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_11,11,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_12,12,1,distance,250,,time,120,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_13,13,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_14,14,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_15,15,1,distance,250,,time,120,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_16,16,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_17,17,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_18,18,1,distance,250,,time,120,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_19,19,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_20,20,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_21,21,1,distance,250,,time,120,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_22,22,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_23,23,1,distance,250,,time,40,,
+P2026_2027,Circuits,Ergo,C1,2026-10-04,"Circuit for 3 people, with 3 stations (one of them an ergo) 
+8 circuits, 2min rest between circuits
+",1,,C1_24,24,1,distance,250,,,,,
