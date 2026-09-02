@@ -3,6 +3,7 @@ import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
 import type { Interval, Workout } from './api'
 import { calculatePaceGuidance, isPaceGuidanceMode, isWolverineLevel, requiresStrokeRate } from './paceGuidance'
 import HeaderTooltip from './components/HeaderTooltip'
+import './Pm5WorkoutSender.css'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
 
@@ -246,6 +247,9 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
   const [stayConnected, setStayConnected] = useState(false)
   const [isMonitoringWorkout, setIsMonitoringWorkout] = useState(false)
   const [concept2Connected, setConcept2Connected] = useState<boolean | null>(null)
+  const [concept2UserId, setConcept2UserId] = useState<string | null>(null)
+  const [concept2UserName, setConcept2UserName] = useState<string | null>(null)
+  const [isDisconnectingConcept2, setIsDisconnectingConcept2] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<string | null>(null)
 
   const orderedIntervals = useMemo(
@@ -253,20 +257,56 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
     [intervals]
   )
 
-  useEffect(() => {
+  const loadConcept2Status = () => {
     let cancelled = false
     fetch(`${API_BASE_URL}/api/concept2/status`, { credentials: 'include' })
       .then((response) => response.json())
       .then((data) => {
-        if (!cancelled) setConcept2Connected(Boolean(data?.connected))
+        if (!cancelled) {
+          setConcept2Connected(Boolean(data?.connected))
+          setConcept2UserId(data?.connected && data?.concept2UserId ? String(data.concept2UserId) : null)
+          setConcept2UserName(data?.connected && data?.concept2UserName ? String(data.concept2UserName) : null)
+        }
       })
       .catch(() => {
-        if (!cancelled) setConcept2Connected(false)
+        if (!cancelled) {
+          setConcept2Connected(false)
+          setConcept2UserId(null)
+          setConcept2UserName(null)
+        }
       })
     return () => {
       cancelled = true
     }
+  }
+
+  useEffect(() => {
+    return loadConcept2Status()
   }, [])
+
+  const disconnectConcept2 = async () => {
+    setIsDisconnectingConcept2(true)
+    setUploadStatus(null)
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/concept2/connection`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => null)
+        throw new Error(body?.error ?? `Disconnect failed with status ${response.status}`)
+      }
+      setConcept2Connected(false)
+      setConcept2UserId(null)
+      setConcept2UserName(null)
+      setStayConnected(false)
+    } catch (disconnectError) {
+      const message = disconnectError instanceof Error ? disconnectError.message : String(disconnectError)
+      setUploadStatus(`Could not disconnect from Concept2 Logbook: ${message}`)
+    } finally {
+      setIsDisconnectingConcept2(false)
+    }
+  }
 
   const uploadWorkoutSummary = async (summary: Record<string, unknown>, startedAt: string) => {
     setUploadStatus('Uploading result to your Concept2 Logbook...')
@@ -527,51 +567,77 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
 
   return (
     <section className="pm5-workout-sender" aria-label="PM5 workout sender">
-      <h3>
-        <HeaderTooltip label="Send workout to PM5 (Android only)">
-          Sending workouts to a PM5 currently works on Android devices only. Apple devices are not supported.
-        </HeaderTooltip>
-      </h3>
-      <p className="pm5-workout-sender-summary">
-        {workout.workout_code} · {orderedIntervals.length} interval{orderedIntervals.length === 1 ? '' : 's'}
-      </p>
+      <div className="pm5-workout-sender-frames">
+        <section className="pm5-workout-sender-frame" aria-label="PM5 connection">
+          <h4>
+            <HeaderTooltip label="Send workout to PM5 (Android only)">
+              Sending workouts to a PM5 currently works on Android devices only. Apple devices are not supported.
+            </HeaderTooltip>
+          </h4>
+          <p className="pm5-workout-sender-summary">
+            {workout.workout_code} · {orderedIntervals.length} interval{orderedIntervals.length === 1 ? '' : 's'}
+          </p>
+          <div className="pm5-workout-sender-actions">
+            <button
+              type="button"
+              onClick={connectPm5}
+              disabled={isSending || isMonitoringWorkout || !window.ergometer?.ble?.hasWebBlueTooth?.()}
+            >
+              Connect PM5
+            </button>
+            <button
+              type="button"
+              onClick={sendWorkoutToPm5}
+              disabled={!estimated2kSeconds || estimated2kSeconds <= 0 || !pm5 || !isConnected || isSending || isMonitoringWorkout || orderedIntervals.length === 0}
+            >
+              Send workout to PM5
+            </button>
+          </div>
+          <label className="pm5-workout-sender-stay-connected">
+            <input
+              type="checkbox"
+              checked={stayConnected}
+              onChange={(event) => setStayConnected(event.target.checked)}
+              disabled={isSending || isMonitoringWorkout || concept2Connected !== true}
+            />
+            Stay connected to PM5 and upload result to C2 Logbook
+          </label>
+          {status && <p className="pm5-workout-sender-status" role="status">{status}</p>}
+        </section>
 
-      <label className="pm5-workout-sender-stay-connected">
-        <input
-          type="checkbox"
-          checked={stayConnected}
-          onChange={(event) => setStayConnected(event.target.checked)}
-          disabled={isSending || isMonitoringWorkout}
-        />
-        Stay connected and upload result to C2 logbook
-      </label>
-
-      {stayConnected && concept2Connected === false && (
-        <p className="pm5-workout-sender-status">
-          <a href={`${API_BASE_URL}/auth/concept2/login`}>Connect to Concept2 Logbook</a> to enable uploading.
-        </p>
-      )}
-
-      <div className="pm5-workout-sender-actions">
-        <button
-          type="button"
-          onClick={connectPm5}
-          disabled={isSending || isMonitoringWorkout || !window.ergometer?.ble?.hasWebBlueTooth?.()}
-        >
-          Connect PM5
-        </button>
-        <button
-          type="button"
-          onClick={sendWorkoutToPm5}
-          disabled={!estimated2kSeconds || estimated2kSeconds <= 0 || !pm5 || !isConnected || isSending || isMonitoringWorkout || orderedIntervals.length === 0}
-        >
-          Send workout to PM5
-        </button>
+        <section className="pm5-workout-sender-frame" aria-label="Concept2 Logbook connection">
+          <h4>Concept2 Logbook</h4>
+          <dl className="pm5-workout-sender-connection-details">
+            <div>
+              <dt>Connection</dt>
+              <dd>{concept2Connected === null ? 'Checking...' : concept2Connected ? 'Connected' : 'Not connected'}</dd>
+            </div>
+            {concept2Connected && concept2UserId && (
+              <div>
+                <dt>Connected user ID</dt>
+                <dd>{concept2UserId}</dd>
+              </div>
+            )}
+            {concept2Connected && concept2UserName && (
+              <div>
+                <dt>Connected as</dt>
+                <dd>{concept2UserName}</dd>
+              </div>
+            )}
+          </dl>
+          <div className="pm5-workout-sender-actions">
+            <a className="pm5-workout-sender-button" href={`${API_BASE_URL}/auth/concept2/login`}>
+              {concept2Connected ? 'Replace connection' : 'Connect Logbook'}
+            </a>
+            {concept2Connected && (
+              <button type="button" onClick={disconnectConcept2} disabled={isDisconnectingConcept2 || isMonitoringWorkout}>
+                {isDisconnectingConcept2 ? 'Disconnecting...' : 'Disconnect'}
+              </button>
+            )}
+          </div>
+          {uploadStatus && <p className="pm5-workout-sender-status" role="status">{uploadStatus}</p>}
+        </section>
       </div>
-
-      {status && <p className="pm5-workout-sender-status" role="status">{status}</p>}
-
-      {uploadStatus && <p className="pm5-workout-sender-status" role="status">{uploadStatus}</p>}
 
       {error && (
         <p className="pm5-workout-sender-error" role="alert">

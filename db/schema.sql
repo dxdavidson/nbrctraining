@@ -59,6 +59,7 @@ CREATE TABLE concept2_tokens (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     device_id         UUID NOT NULL,
     concept2_user_id  TEXT NOT NULL,
+    concept2_user_name TEXT,
     access_token      TEXT NOT NULL,
     refresh_token     TEXT NOT NULL,
     expires_at        TIMESTAMPTZ NOT NULL,

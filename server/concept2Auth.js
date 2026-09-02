@@ -28,6 +28,14 @@ function setDeviceCookie(res, deviceId) {
   })
 }
 
+function clearDeviceCookie(res) {
+  res.clearCookie(DEVICE_COOKIE_NAME, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+  })
+}
+
 async function exchangeCodeForTokens(config, code) {
   const response = await fetch(CONCEPT2_TOKEN_URL, {
     method: 'POST',
@@ -46,7 +54,18 @@ async function exchangeCodeForTokens(config, code) {
   return response.json()
 }
 
-async function fetchConcept2UserId(accessToken) {
+function getConcept2UserDisplayName(user) {
+  const values = [
+    user?.name,
+    user?.username,
+    user?.user_name,
+    [user?.first_name, user?.last_name].filter(Boolean).join(' '),
+    [user?.firstName, user?.lastName].filter(Boolean).join(' '),
+  ]
+  return values.find((value) => typeof value === 'string' && value.trim())?.trim() ?? null
+}
+
+async function fetchConcept2User(accessToken) {
   const response = await fetch(`${CONCEPT2_API_BASE}/users/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
@@ -54,21 +73,25 @@ async function fetchConcept2UserId(accessToken) {
     throw new Error(`Fetching Concept2 user failed with status ${response.status}`)
   }
   const body = await response.json()
-  return String(body?.data?.id ?? body?.id ?? '')
+  const user = body?.data ?? body
+  return {
+    userId: String(user?.id ?? ''),
+    userName: getConcept2UserDisplayName(user),
+  }
 }
 
-async function upsertTokens(deviceId, concept2UserId, tokens) {
+async function upsertTokens(deviceId, concept2User, tokens) {
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)
   await pool.query(
-    `INSERT INTO concept2_tokens (device_id, concept2_user_id, access_token, refresh_token, expires_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, now())
+    `INSERT INTO concept2_tokens (device_id, concept2_user_id, concept2_user_name, access_token, refresh_token, expires_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, now())
      ON CONFLICT (device_id) DO UPDATE
-     SET concept2_user_id = EXCLUDED.concept2_user_id,
+     SET concept2_user_id = EXCLUDED.concept2_user_id, concept2_user_name = EXCLUDED.concept2_user_name,
          access_token = EXCLUDED.access_token,
          refresh_token = EXCLUDED.refresh_token,
          expires_at = EXCLUDED.expires_at,
          updated_at = now()`,
-    [deviceId, concept2UserId, tokens.access_token, tokens.refresh_token, expiresAt]
+    [deviceId, concept2User.userId, concept2User.userName, tokens.access_token, tokens.refresh_token, expiresAt]
   )
 }
 
@@ -108,8 +131,8 @@ export function registerConcept2Routes(app) {
 
     try {
       const tokens = await exchangeCodeForTokens(config, code)
-      const concept2UserId = await fetchConcept2UserId(tokens.access_token)
-      await upsertTokens(deviceId, concept2UserId, tokens)
+      const concept2User = await fetchConcept2User(tokens.access_token)
+      await upsertTokens(deviceId, concept2User, tokens)
       res.redirect(`${config.CONCEPT2_FRONTEND_URL}?concept2=connected`)
     } catch (err) {
       console.error('Concept2 OAuth callback failed:', err)
@@ -124,16 +147,36 @@ export function registerConcept2Routes(app) {
     }
 
     try {
-      const { rows } = await pool.query('SELECT concept2_user_id FROM concept2_tokens WHERE device_id = $1', [
+      const { rows } = await pool.query('SELECT concept2_user_id, concept2_user_name FROM concept2_tokens WHERE device_id = $1', [
         deviceId,
       ])
       if (rows.length === 0) {
         return res.json({ connected: false })
       }
-      res.json({ connected: true, concept2UserId: rows[0].concept2_user_id })
+      res.json({
+        connected: true,
+        concept2UserId: rows[0].concept2_user_id,
+        concept2UserName: rows[0].concept2_user_name,
+      })
     } catch (err) {
       console.error('Failed to load Concept2 connection status:', err)
       res.status(500).json({ error: 'Failed to load Concept2 connection status.' })
+    }
+  })
+
+  app.delete('/api/concept2/connection', async (req, res) => {
+    const deviceId = req.cookies?.[DEVICE_COOKIE_NAME]
+    if (!deviceId) {
+      return res.status(204).end()
+    }
+
+    try {
+      await pool.query('DELETE FROM concept2_tokens WHERE device_id = $1', [deviceId])
+      clearDeviceCookie(res)
+      res.status(204).end()
+    } catch (err) {
+      console.error('Failed to disconnect Concept2 account:', err)
+      res.status(500).json({ error: 'Failed to disconnect Concept2 account.' })
     }
   })
 

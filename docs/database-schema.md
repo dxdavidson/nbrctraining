@@ -44,6 +44,7 @@ erDiagram
         uuid id PK
         uuid device_id
         string concept2_user_id
+		string concept2_user_name
         string access_token
         string refresh_token
         datetime expires_at
