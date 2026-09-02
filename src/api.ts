@@ -25,6 +25,7 @@ export interface Workout {
   description: string | null
   sort_order: number | null
   level: string | null
+  has_intervals?: boolean
 }
 
 export interface Interval {

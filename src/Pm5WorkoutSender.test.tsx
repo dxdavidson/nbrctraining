@@ -14,6 +14,7 @@ describe('Pm5WorkoutSender', () => {
     description: 'Test workout',
     sort_order: 1,
     level: null,
+    has_intervals: true,
   }
 
   const intervals: Interval[] = [

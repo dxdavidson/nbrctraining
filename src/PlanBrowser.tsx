@@ -183,6 +183,10 @@ function findCurrentWeek(sortedWeeks: string[]): string | null {
   return sortedWeeks[0] ?? null
 }
 
+function canExpandWorkout(workout: Workout): boolean {
+  return workout.has_intervals === true || (workout.has_intervals === undefined && workout.wk_type !== 'OTW')
+}
+
 export default function PlanBrowser() {
   const [selection, setSelection] = useUrlSelection()
   const [estimated2kSeconds] = useEstimated2kSeconds()
@@ -265,6 +269,8 @@ export default function PlanBrowser() {
   const sortedWorkouts = [...workouts].sort((a, b) => {
     const weekCompare = (a.week_commencing ?? '').localeCompare(b.week_commencing ?? '')
     if (weekCompare !== 0) return weekCompare
+    const sortOrderCompare = (a.sort_order ?? Number.POSITIVE_INFINITY) - (b.sort_order ?? Number.POSITIVE_INFINITY)
+    if (sortOrderCompare !== 0) return sortOrderCompare
     return a.workout_code.localeCompare(b.workout_code)
   })
 
@@ -298,15 +304,17 @@ export default function PlanBrowser() {
         getRowId={(w) => w.id}
         selectedId={workoutId}
         onSelectRow={(w) => {
-          if (workoutId === w.id || requireEstimated2kTime()) setSelection({ workoutId: w.id })
+          if (canExpandWorkout(w) && (workoutId === w.id || requireEstimated2kTime())) setSelection({ workoutId: w.id })
         }}
         expandedRowId={workoutId}
         renderExpandedRow={() => (
           <IntervalsTable intervals={intervals} estimated2kSeconds={estimated2kSeconds} loading={loadingIntervals} />
         )}
         onToggleRow={(w, isExpanded) => {
-          if (isExpanded || requireEstimated2kTime()) setSelection(isExpanded ? { workoutId: null } : { workoutId: w.id })
+          if (canExpandWorkout(w) && (isExpanded || requireEstimated2kTime())) setSelection(isExpanded ? { workoutId: null } : { workoutId: w.id })
         }}
+        canExpandRow={canExpandWorkout}
+        getRowClassName={(w) => w.wk_type === 'OTW' ? 'data-table-workout-otw' : undefined}
         getRowLabel={(w) => w.workout_code}
         loading={loadingWorkouts}
         emptyMessage="No workouts in this block."

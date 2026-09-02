@@ -19,6 +19,8 @@ interface DataTableProps<Row> {
   expandedRowId?: string | null
   renderExpandedRow?: (row: Row) => React.ReactNode
   onToggleRow?: (row: Row, isExpanded: boolean) => void
+  canExpandRow?: (row: Row) => boolean
+  getRowClassName?: (row: Row) => string | undefined
   getRowLabel?: (row: Row) => string
   loading: boolean
   emptyMessage: string
@@ -36,6 +38,8 @@ export default function DataTable<Row>({
   expandedRowId = null,
   renderExpandedRow,
   onToggleRow,
+  canExpandRow,
+  getRowClassName,
   getRowLabel,
   loading,
   emptyMessage,
@@ -116,15 +120,17 @@ export default function DataTable<Row>({
             sortedRows.map((row) => {
               const id = getRowId(row)
               const isSelected = id === selectedId
-              const isExpanded = id === expandedRowId && Boolean(renderExpandedRow)
+              const canExpand = !canExpandRow || canExpandRow(row)
+              const isExpanded = canExpand && id === expandedRowId && Boolean(renderExpandedRow)
               const rowLabel = getRowLabel?.(row) ?? id
+              const rowClassName = [getRowClassName?.(row), isSelected && 'data-table-row-selected'].filter(Boolean).join(' ') || undefined
               return (
                 <Fragment key={id}>
                   <tr
                     tabIndex={0}
                     aria-selected={isSelected}
-                    aria-expanded={isExpanded ? true : undefined}
-                    className={isSelected ? 'data-table-row-selected' : undefined}
+                    aria-expanded={canExpand && renderExpandedRow ? isExpanded : undefined}
+                    className={rowClassName}
                     onClick={() => onSelectRow(row)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -135,18 +141,20 @@ export default function DataTable<Row>({
                   >
                     {hasExpansionControls && (
                       <td className="data-table-disclosure-cell">
-                        <button
-                          type="button"
-                          className="data-table-disclosure-button"
-                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${rowLabel}`}
-                          aria-expanded={isExpanded}
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            onToggleRow!(row, isExpanded)
-                          }}
-                        >
-                          <span aria-hidden="true">{isExpanded ? '−' : '+'}</span>
-                        </button>
+                        {canExpand && (
+                          <button
+                            type="button"
+                            className="data-table-disclosure-button"
+                            aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${rowLabel}`}
+                            aria-expanded={isExpanded}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              onToggleRow!(row, isExpanded)
+                            }}
+                          >
+                            <span aria-hidden="true">{isExpanded ? '−' : '+'}</span>
+                          </button>
+                        )}
                       </td>
                     )}
                     {columns.map((column) => (

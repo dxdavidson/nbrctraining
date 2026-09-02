@@ -92,6 +92,16 @@
   background: var(--accent-bg);
 }
 
+.data-table tbody tr.data-table-workout-otw {
+  background: #7bb5c9;
+  color: #123a68;
+}
+
+.data-table tbody tr.data-table-workout-otw:hover,
+.data-table tbody tr.data-table-workout-otw.data-table-row-selected {
+  background: #bfdbfe;
+}
+
 .data-table tbody tr:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;

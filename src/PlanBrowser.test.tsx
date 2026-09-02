@@ -8,7 +8,7 @@ vi.mock('./api')
 
 const plan = { id: 'p1', plan_code: 'PC1', title: 'Plan One', description: null, start_date: null, published: true }
 const block = { id: 'b1', plan_id: 'p1', block_code: 'BC1', title: 'Block One', description: null, start_date: null }
-const workout = { id: 'w1', block_id: 'b1', wk_type: null, workout_code: 'WC1', week_commencing: null, description: null, sort_order: 1, level: null }
+const workout = { id: 'w1', block_id: 'b1', wk_type: null, workout_code: 'WC1', week_commencing: null, description: null, sort_order: 1, level: null, has_intervals: true }
 const interval = {
   id: 'i1',
   workout_id: 'w1',
@@ -49,6 +49,26 @@ afterEach(() => {
 })
 
 describe('PlanBrowser drill-down (narrow layout)', () => {
+  it('does not provide expansion controls for workouts without intervals', async () => {
+    vi.mocked(api.fetchWorkouts).mockResolvedValue([
+      { ...workout, id: 'otw1', wk_type: 'OTW', workout_code: 'W1_OTW1', has_intervals: undefined },
+    ])
+
+    const user = userEvent.setup()
+    render(<PlanBrowser />)
+
+    const plansTable = await screen.findByRole('table', { name: 'Plans' })
+    await user.click(within(plansTable).getByText('Plan One'))
+    const blocksTable = await screen.findByRole('table', { name: 'Blocks' })
+    await user.click(within(blocksTable).getByText('Block One'))
+
+    const workoutsTable = await screen.findByRole('table', { name: 'Workouts' })
+    expect(within(workoutsTable).queryByRole('button', { name: 'Expand W1_OTW1' })).not.toBeInTheDocument()
+    expect(within(workoutsTable).getByText('W1_OTW1').closest('tr')).toHaveClass('data-table-workout-otw')
+    await user.click(within(workoutsTable).getByText('W1_OTW1'))
+    expect(api.fetchIntervals).not.toHaveBeenCalled()
+  })
+
   it('shows Plans first, then drills into Blocks, Workouts, Intervals on row selection', async () => {
     const user = userEvent.setup()
     render(<PlanBrowser />)
