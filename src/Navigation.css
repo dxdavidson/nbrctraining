@@ -1,0 +1,93 @@
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.site-brand {
+  color: var(--text-h);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.site-navigation a,
+.admin-navigation summary {
+  display: block;
+  padding: 0.5rem 0.65rem;
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.site-navigation a:hover,
+.admin-navigation summary:hover {
+  color: var(--text-h);
+  background: var(--accent-bg);
+}
+
+.site-navigation .is-active,
+.admin-navigation summary.is-active {
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.admin-navigation {
+  position: relative;
+}
+
+.admin-navigation summary {
+  list-style: none;
+}
+
+.admin-navigation summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-navigation summary::after {
+  content: '\25BE';
+  margin-left: 0.4rem;
+}
+
+.admin-navigation[open] summary::after {
+  content: '\25B4';
+}
+
+.admin-navigation-menu {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  min-width: 10rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 760px) {
+  .site-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .site-navigation {
+    flex-wrap: wrap;
+  }
+}

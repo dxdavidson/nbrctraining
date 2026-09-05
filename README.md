@@ -39,9 +39,13 @@ psql "postgresql://user:password@localhost:5432/nbrctraining" -f db/schema.sql
 
 The API currently expects the database tables to contain plan, block, workout, and interval data. The schema creates the tables but does not add seed data.
 
+## Navigation
+
+The default **Rowing Plans** page is available at `/`. The main navigation also includes placeholders for `/ramp-test` and `/round-robin-ergos`, ready for their respective features. The **Admin** menu contains the workout importer.
+
 ## CSV workout import
 
-The private importer is available at `/admin/import`. It is not linked from the public app. Configure a long random `IMPORT_TOKEN` in the server environment before using it; the import API rejects requests without that token.
+The importer is available from **Admin → Import Workouts** at `/admin/import`. Configure a long random `IMPORT_TOKEN` in the server environment before using it; the import API rejects requests without that token.
 
 The importer accepts the flat CSV format stored in `data/imports/workouts/`, with one row per interval and repeated workout columns. Plans and blocks must already exist, identified by `plan_code` and `block_code`. The server creates each workout and then its intervals in one PostgreSQL transaction.
 
