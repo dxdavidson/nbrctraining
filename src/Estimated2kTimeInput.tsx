@@ -53,6 +53,7 @@ export default function Estimated2kTimeInput() {
           placeholder="mm"
           value={minutes ?? ''}
           onChange={(e) => handleMinutesChange(e.target.value)}
+          onFocus={(e) => e.target.select()}
         />
         <span aria-hidden="true">:</span>
         <input
@@ -64,6 +65,7 @@ export default function Estimated2kTimeInput() {
           placeholder="ss"
           value={seconds ?? ''}
           onChange={(e) => handleSecondsChange(e.target.value)}
+          onFocus={(e) => e.target.select()}
         />
       </div>
     </div>
