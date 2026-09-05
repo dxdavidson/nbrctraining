@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Pm5WorkoutSender from './Pm5WorkoutSender'
 import type { Workout, Interval } from './api'
+import { secondsPer500mFromWatts } from './wolverinePace'
 
 describe('Pm5WorkoutSender', () => {
   const workout: Workout = {
@@ -63,6 +64,10 @@ describe('Pm5WorkoutSender', () => {
         }),
         setTargetPaceTime: vi.fn().mockImplementation(({ value }) => {
           rawCommands.push({ command: 118, detailCommand: 6, data: [((value >> 24) & 0xff), ((value >> 16) & 0xff), ((value >> 8) & 0xff), (value & 0xff)] })
+          return buffer
+        }),
+        setTargetAverageWatt: vi.fn().mockImplementation(({ value }) => {
+          rawCommands.push({ command: 118, detailCommand: 21, data: [(value >> 8) & 0xff, value & 0xff] })
           return buffer
         }),
         setConfigureWorkout: vi.fn().mockImplementation(({ programmingMode }) => {
@@ -242,12 +247,12 @@ describe('Pm5WorkoutSender', () => {
 
     const pm5Monitor = (window as typeof window & { ergometer?: any }).ergometer.PerformanceMonitorBle
     const instance = new pm5Monitor()
-    expect(instance.newCsafeBuffer).toHaveBeenCalledTimes(7)
+    expect(instance.newCsafeBuffer).toHaveBeenCalledTimes(6)
     expect(instance.newCsafeBuffer.mock.results[0].value.setWorkoutType).toHaveBeenCalledWith({ value: 8 })
     expect(instance.newCsafeBuffer.mock.results[3].value.setWorkoutIntervalCount).toHaveBeenCalledWith({ value: 1 })
     expect(instance.newCsafeBuffer.mock.results[4].value.setWorkoutDuration).toHaveBeenCalledWith({ value: 18000, durationType: 0 })
     expect(instance.newCsafeBuffer.mock.results[5].value.setTargetPaceTime).toHaveBeenCalled()
-    expect(instance.newCsafeBuffer.mock.results[6].value.setScreenState).toHaveBeenCalledWith({ screenType: 1, value: 1 })
+    expect(instance.newCsafeBuffer.mock.results[5].value.setScreenState).toHaveBeenCalledWith({ screenType: 1, value: 1 })
     expect(screen.getByRole('status')).toHaveTextContent(/workout sent/i)
   })
 
@@ -265,7 +270,7 @@ describe('Pm5WorkoutSender', () => {
 
     const pm5Monitor = (window as typeof window & { ergometer?: any }).ergometer.PerformanceMonitorBle
     const instance = new pm5Monitor()
-    expect(instance.newCsafeBuffer).toHaveBeenCalledTimes(7)
+    expect(instance.newCsafeBuffer).toHaveBeenCalledTimes(6)
     expect(instance.newCsafeBuffer.mock.results[0].value.setWorkoutIntervalCount).toHaveBeenCalledWith({ value: 0 })
     expect(instance.newCsafeBuffer.mock.results[0].value.setWorkoutType).toHaveBeenCalledWith({ value: 8 })
     expect(instance.newCsafeBuffer.mock.results[0].value.setIntervalType).toHaveBeenCalledWith({ value: 1 })
@@ -273,5 +278,43 @@ describe('Pm5WorkoutSender', () => {
     expect(screen.getByText(/PM_SET_TARGETPACETIME/i)).toBeInTheDocument()
     expect(screen.getByText(/programmingMode=true/i)).toBeInTheDocument()
     expect(screen.getByText(/programmingMode=true/i)).toBeInTheDocument()
+  })
+
+  it('converts ramp interval watts targets to pace targets for the PM5', async () => {
+    window.localStorage.removeItem('nbrctraining.estimated2kTimeSeconds')
+    const rampIntervals: Interval[] = [{
+      ...intervals[0],
+      work_kind: 'time',
+      work_value: 60,
+      recovery_kind: null,
+      recovery_value: null,
+      target_mode: 'watts',
+      target_value: 145,
+    }, {
+      ...intervals[0],
+      id: 'i-ramp-2',
+      interval_order: 2,
+      work_kind: 'time',
+      work_value: 60,
+      recovery_kind: null,
+      recovery_value: null,
+      target_mode: 'watts',
+      target_value: 160,
+    }]
+
+    const user = userEvent.setup()
+    render(<Pm5WorkoutSender workout={workout} intervals={rampIntervals} requireEstimated2k={false} sendButtonLabel="Send ramp test to PM5" />)
+    await user.click(screen.getByRole('button', { name: /connect pm5/i }))
+    await user.click(screen.getByRole('button', { name: /send ramp test to pm5/i }))
+
+    const expectedPace145 = Math.round(secondsPer500mFromWatts(145) * 100)
+    const expectedPace160 = Math.round(secondsPer500mFromWatts(160) * 100)
+
+    const pm5Monitor = (window as typeof window & { ergometer?: any }).ergometer.PerformanceMonitorBle
+    const instance = new pm5Monitor()
+    const createdBuffers = instance.newCsafeBuffer.mock.results.map((result: any) => result.value)
+    expect(createdBuffers.some((buffer: any) => buffer.setTargetPaceTime.mock.calls.some(([arg]: any[]) => arg.value === expectedPace145))).toBe(true)
+    expect(createdBuffers.some((buffer: any) => buffer.setTargetPaceTime.mock.calls.some(([arg]: any[]) => arg.value === expectedPace160))).toBe(true)
+    expect(createdBuffers.some((buffer: any) => buffer.setTargetAverageWatt.mock.calls.length > 0)).toBe(false)
   })
 })

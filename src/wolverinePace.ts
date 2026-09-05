@@ -14,7 +14,10 @@ export function wattsFromSecondsPer500m(secondsPer500m: number): number {
   return CONCEPT2_WATTS_CONSTANT / Math.pow(secondsPer500m / 500, 3)
 }
 
-function secondsPer500mFromWatts(watts: number): number {
+export function secondsPer500mFromWatts(watts: number): number {
+  if (!Number.isFinite(watts) || watts <= 0) {
+    throw new Error('Watts must be a positive number.')
+  }
   return 500 * Math.cbrt(CONCEPT2_WATTS_CONSTANT / watts)
 }
 
@@ -60,4 +63,3 @@ export function calculateWolverinePace(level: Exclude<WolverineLevel, 'L4'>, spm
     watts: Math.round(watts),
   }
 }
-

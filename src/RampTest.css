@@ -1,0 +1,96 @@
+.ramp-test {
+  width: min(58rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.ramp-test-kicker {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ramp-test h1 {
+  margin: 0.5rem 0 1rem;
+}
+
+.ramp-test-intro {
+  max-width: 46rem;
+}
+
+.ramp-test-section {
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.ramp-test-section h2 {
+  margin-top: 0;
+}
+
+.ramp-test-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+
+.ramp-test-settings label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.ramp-test-settings input {
+  width: 100%;
+}
+
+.ramp-test-stage-table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.ramp-test-stage-table th,
+.ramp-test-stage-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ramp-test-stage-table caption {
+  padding-bottom: 0.5rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.ramp-test-error {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.ramp-test-result {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+}
+
+.ramp-test-result div {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.ramp-test-result dt {
+  font-size: 0.875rem;
+}
+
+.ramp-test-result dd {
+  margin: 0.25rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
