@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
 import type { Interval, Workout } from './api'
 import { calculatePaceGuidance, isPaceGuidanceMode, isWolverineLevel, requiresStrokeRate } from './paceGuidance'
+import { secondsPer500mFromWatts } from './wolverinePace'
 import HeaderTooltip from './components/HeaderTooltip'
 import './Pm5WorkoutSender.css'
 
@@ -26,6 +27,9 @@ const DURATION_TYPE_DISTANCE = 0x80
 const DURATION_TYPE_TIME = 0x00
 const SCREEN_TYPE_WORKOUT = 1
 const SCREEN_VALUE_PREPARE_TO_ROW = 1
+const SCREEN_STATE_INTERVAL_CADENCE = 10
+// Placeholder pace (2:00/500m) used only to force the PM5's unit display to Pace/500m; the monitor ignores it when a real target exists.
+const DUMMY_PACE_HUNDREDTHS = 12000
 
 const COMMAND_NAME_MAP: Record<number, string> = {
   26: 'SETUSERCFG1_CMD',
@@ -186,7 +190,7 @@ function logIntervalDiagnostics(
   workValue: number,
   recoverySeconds: number,
   isDistanceBased: boolean,
-  targetPaceHundredths: number | null
+  target: Pm5Target | null
 ): string {
   const lines = [
     `Interval ${intervalIndex + 1} computed values:`,
@@ -197,7 +201,8 @@ function logIntervalDiagnostics(
     `  recoverySeconds: ${recoverySeconds}s`,
     `  targetMode: ${interval.target_mode ?? 'null'}`,
     `  targetValue: ${interval.target_value ?? 'null'}`,
-    `  targetPaceHundredths: ${targetPaceHundredths ?? 'null (skipped)'}`,
+    `  targetEncoding: ${target === null ? 'none' : target.kind === 'watts' ? 'direct watts (PM_SET_TARGETAVGWATTS)' : interval.target_mode === 'watts' ? 'pace conversion from watts (PM_SET_TARGETPACETIME)' : 'pace target (PM_SET_TARGETPACETIME)'}`,
+    `  target: ${target ? target.kind === 'pace' ? `${target.value} hundredths pace` : `${target.value} watts` : 'null (skipped)'}`,
   ]
   return lines.join('\n')
 }
@@ -205,6 +210,16 @@ function logIntervalDiagnostics(
 interface Pm5WorkoutSenderProps {
   workout: Workout | null
   intervals: Interval[]
+}
+
+// Which unit the PM5 should display when no real target can be computed for an interval.
+type Pm5PreferredUnits = 'pace' | 'watts'
+
+function withPreferredUnitsFallback(target: Pm5Target | null, preferredUnits: Pm5PreferredUnits): Pm5Target | null {
+  if (target !== null || preferredUnits !== 'pace') {
+    return target
+  }
+  return { kind: 'pace', value: DUMMY_PACE_HUNDREDTHS }
 }
 
 function getDurationType(workKind: string | null): number {
@@ -215,7 +230,22 @@ function getIntervalType(workKind: string | null): number {
   return workKind === 'distance' ? INTERVAL_TYPE_DISTANCE : INTERVAL_TYPE_TIME
 }
 
-function toTargetPaceHundredths(interval: Interval, estimated2kSeconds: number | null): number | null {
+type Pm5Target =
+  | { kind: 'pace'; value: number }
+  | { kind: 'watts'; value: number }
+
+function toPm5Target(interval: Interval, estimated2kSeconds: number | null): Pm5Target | null {
+  if (interval.target_mode === 'watts') {
+    const watts = interval.target_value
+    if (watts == null || !Number.isFinite(watts) || watts <= 0) {
+      return null
+    }
+    const secondsPer500m = secondsPer500mFromWatts(watts)
+    return Number.isFinite(secondsPer500m)
+      ? { kind: 'pace', value: Math.max(0, Math.round(secondsPer500m * 100)) }
+      : null
+  }
+
   if (!isPaceGuidanceMode(interval.target_mode) || estimated2kSeconds == null) {
     return null
   }
@@ -228,13 +258,21 @@ function toTargetPaceHundredths(interval: Interval, estimated2kSeconds: number |
       spm: interval.spm ?? 0,
       targetValue: interval.target_value,
     })
-    return Number.isFinite(secondsPer500m) ? Math.max(0, Math.round(secondsPer500m * 100)) : null
+    return Number.isFinite(secondsPer500m)
+      ? { kind: 'pace', value: Math.max(0, Math.round(secondsPer500m * 100)) }
+      : null
   } catch {
     return null
   }
 }
 
-export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSenderProps) {
+export default function Pm5WorkoutSender({
+  workout,
+  intervals,
+  requireEstimated2k = true,
+  sendButtonLabel = 'Send workout to PM5',
+  preferredUnits = 'pace',
+}: Pm5WorkoutSenderProps & { requireEstimated2k?: boolean; sendButtonLabel?: string; preferredUnits?: Pm5PreferredUnits }) {
   const diagnosticsEnabled = new URLSearchParams(window.location.search).get('diagnostics') === '1'
   const [estimated2kSeconds] = useEstimated2kSeconds()
   const [pm5, setPm5] = useState<any>(null)
@@ -376,7 +414,7 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
   }
 
   const sendWorkoutToPm5 = async () => {
-    if (!estimated2kSeconds || estimated2kSeconds <= 0) {
+    if (requireEstimated2k && (!estimated2kSeconds || estimated2kSeconds <= 0)) {
       setStatus('Enter an estimated 2K time before sending a workout to the PM5.')
       return
     }
@@ -393,6 +431,23 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
     try {
       setCommandLog((previous) => appendCommandHistory(previous, `[diag] Device state: manufacturer=${deviceInfo?.manufacturer ?? 'unknown'}, serial=${deviceInfo?.serial ?? 'unknown'}, timeout=${pm5._commandTimeout}ms`))
 
+      // Real PM5 devices occasionally drop the ack for a buffer ("Time out buffer"); retry once before giving up.
+      const sendBuffer = async (buffer: { send: () => Promise<void> }, label: string, maxAttempts = 2): Promise<number> => {
+        const start = performance.now()
+        for (let attempt = 1; ; attempt += 1) {
+          try {
+            await buffer.send()
+            return performance.now() - start
+          } catch (sendError) {
+            if (attempt >= maxAttempts) {
+              throw sendError
+            }
+            const message = sendError instanceof Error ? sendError.message : String(sendError)
+            setCommandLog((previous) => appendCommandHistory(previous, `[warn] ${label} failed (attempt ${attempt}): ${message}. Retrying...`))
+          }
+        }
+      }
+
       let intervalIndex = 0
       let screenSent = false
       const totalIntervalCount = orderedIntervals.reduce(
@@ -408,91 +463,115 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
           const workValue = interval.work_value ?? 0
           const recoverySeconds = interval.recovery_kind === 'time' ? Math.max(0, Math.round(interval.recovery_value ?? 0)) : 0
           const isDistanceBased = interval.work_kind === 'distance'
-          const targetPaceHundredths = toTargetPaceHundredths(interval, estimated2kSeconds)
-
-          setCommandLog((previous) => appendCommandHistory(previous, logIntervalDiagnostics(intervalIndex, interval, intervalType, durationType, workValue, recoverySeconds, isDistanceBased, targetPaceHundredths)))
+          const rawTarget = toPm5Target(interval, estimated2kSeconds)
 
           if (!isDistanceBased && !useVariableInterval) {
-            const durationStartTime = performance.now()
+            // Never send setTargetPaceTime with configure here - the single fixed-time-interval protocol rejects that pairing on real devices.
+            const target = rawTarget
+
+            setCommandLog((previous) => appendCommandHistory(previous, logIntervalDiagnostics(intervalIndex, interval, intervalType, durationType, workValue, recoverySeconds, isDistanceBased, target)))
+
             const durationCommand = pm5
               .newCsafeBuffer()
               .setWorkoutType({ value: WORKOUT_TYPE_FIXED_TIME_INTERVAL })
               .setWorkoutDuration({ value: Math.max(0, Math.round(workValue * 100)), durationType: DURATION_TYPE_TIME })
             setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: fixed time duration`, durationCommand)))
             setCommandLog((previous) => appendCommandHistory(previous, `[info] Time-based interval ${intervalIndex + 1}: fixedTimeInterval, duration=${workValue}s (${Math.round(workValue * 100)} hundredths)`))
-            await durationCommand.send()
-            const durationElapsed = performance.now() - durationStartTime
+            const durationElapsed = await sendBuffer(durationCommand, `Interval ${intervalIndex + 1}: fixed time duration`)
             setCommandLog((previous) => appendCommandHistory(previous, `[diag] Fixed time duration buffer sent in ${durationElapsed.toFixed(1)}ms`))
 
-            const configureStartTime = performance.now()
             const configureCommand = pm5
               .newCsafeBuffer()
               .setRestDuration({ value: recoverySeconds })
+            if (interval.target_mode === 'watts' && interval.target_value != null && Number.isFinite(interval.target_value) && interval.target_value > 0) {
+              configureCommand.setTargetAverageWatt({ value: Math.round(interval.target_value) })
+            }
+            configureCommand
               .setConfigureWorkout({ programmingMode: true })
               .setScreenState({
                 screenType: SCREEN_TYPE_WORKOUT,
                 value: SCREEN_VALUE_PREPARE_TO_ROW,
               })
             setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: rest + configure + screen`, configureCommand)))
-            await configureCommand.send()
-            const configureElapsed = performance.now() - configureStartTime
+            const configureElapsed = await sendBuffer(configureCommand, `Interval ${intervalIndex + 1}: rest + configure + screen`)
             setCommandLog((previous) => appendCommandHistory(previous, `[diag] Fixed time configure buffer sent in ${configureElapsed.toFixed(1)}ms`))
             screenSent = true
             intervalIndex += 1
             continue
           }
 
-          const startTime = performance.now()
+          const target = withPreferredUnitsFallback(rawTarget, preferredUnits)
+          const isLastInterval = intervalIndex === totalIntervalCount - 1
+          const shouldSendScreen = isLastInterval || (intervalIndex > 0 && intervalIndex % SCREEN_STATE_INTERVAL_CADENCE === 0)
+
+          setCommandLog((previous) => appendCommandHistory(previous, logIntervalDiagnostics(intervalIndex, interval, intervalType, durationType, workValue, recoverySeconds, isDistanceBased, target)))
+
           const setupBuffer = pm5
             .newCsafeBuffer()
             .setWorkoutIntervalCount({ value: intervalIndex })
-            .setWorkoutType({ value: WORKOUT_TYPE_VARIABLE_INTERVAL })
-            .setIntervalType({ value: intervalType })
+          if (intervalIndex === 0) {
+            setupBuffer.setWorkoutType({ value: WORKOUT_TYPE_VARIABLE_INTERVAL })
+          }
+          setupBuffer.setIntervalType({ value: intervalType })
           setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: setup`, setupBuffer)))
-          await setupBuffer.send()
-          const setupDuration = performance.now() - startTime
+          const setupDuration = await sendBuffer(setupBuffer, `Interval ${intervalIndex + 1}: setup`)
           setCommandLog((previous) => appendCommandHistory(previous, `[diag] Setup buffer sent in ${setupDuration.toFixed(1)}ms`))
 
-          if (targetPaceHundredths !== null) {
-            const distStartTime = performance.now()
+          if (target !== null) {
             const durationBuffer = pm5
               .newCsafeBuffer()
               .setWorkoutDuration({ value: isDistanceBased ? workValue : Math.max(0, Math.round(workValue * 100)), durationType })
               .setRestDuration({ value: recoverySeconds })
             setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: distance + rest`, durationBuffer)))
-            await durationBuffer.send()
-            const distDuration = performance.now() - distStartTime
+            const distDuration = await sendBuffer(durationBuffer, `Interval ${intervalIndex + 1}: distance + rest`)
             setCommandLog((previous) => appendCommandHistory(previous, `[diag] Distance/rest buffer sent in ${distDuration.toFixed(1)}ms`))
 
-            const paceStartTime = performance.now()
-            const paceCommand = pm5
-              .newCsafeBuffer()
-              .setTargetPaceTime({ value: targetPaceHundredths })
-              .setConfigureWorkout({ programmingMode: true })
-            setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: pace + configure`, paceCommand)))
-            await paceCommand.send()
-            const paceDuration = performance.now() - paceStartTime
-            setCommandLog((previous) => appendCommandHistory(previous, `[diag] Pace/configure buffer sent in ${paceDuration.toFixed(1)}ms`))
+            const targetCommand = pm5.newCsafeBuffer()
+            if (target.kind === 'pace') {
+              targetCommand.setTargetPaceTime({ value: target.value })
+            } else {
+              targetCommand.setTargetAverageWatt({ value: target.value })
+            }
+            targetCommand.setConfigureWorkout({ programmingMode: true })
+            if (shouldSendScreen) {
+              // The PM5 requires a screen command when programming interval 11 and later ten-interval boundaries.
+              targetCommand.setScreenState({
+                screenType: SCREEN_TYPE_WORKOUT,
+                value: SCREEN_VALUE_PREPARE_TO_ROW,
+              })
+            }
+            setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: target + configure${shouldSendScreen ? ' + screen' : ''}`, targetCommand)))
+            const targetDuration = await sendBuffer(targetCommand, `Interval ${intervalIndex + 1}: target + configure`)
+            setCommandLog((previous) => appendCommandHistory(previous, `[diag] Target/configure buffer sent in ${targetDuration.toFixed(1)}ms`))
+            if (isLastInterval) {
+              screenSent = true
+            }
           } else if (isDistanceBased || useVariableInterval) {
-            const noPaceStartTime = performance.now()
             const durationBuffer = pm5
               .newCsafeBuffer()
               .setWorkoutDuration({ value: isDistanceBased ? workValue : Math.max(0, Math.round(workValue * 100)), durationType })
               .setRestDuration({ value: recoverySeconds })
             setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: distance + rest (no pace)`, durationBuffer)))
-            await durationBuffer.send()
-            const noPaceDuration = performance.now() - noPaceStartTime
+            const noPaceDuration = await sendBuffer(durationBuffer, `Interval ${intervalIndex + 1}: distance + rest (no pace)`)
             setCommandLog((previous) => appendCommandHistory(previous, `[diag] Distance/rest buffer sent in ${noPaceDuration.toFixed(1)}ms`))
 
-            const configStartTime = performance.now()
             const configureCommand = pm5
               .newCsafeBuffer()
               .setConfigureWorkout({ programmingMode: true })
-            setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: configure only`, configureCommand)))
+            if (isLastInterval) {
+              // setScreenState must ride along with the final setConfigureWorkout buffer - a standalone buffer sent after configure times out on real devices.
+              configureCommand.setScreenState({
+                screenType: SCREEN_TYPE_WORKOUT,
+                value: SCREEN_VALUE_PREPARE_TO_ROW,
+              })
+            }
+            setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: configure only${isLastInterval ? ' + screen' : ''}`, configureCommand)))
             setCommandLog((previous) => appendCommandHistory(previous, `[info] Distance-based interval ${intervalIndex + 1}: no 2k pace estimate available.`))
-            await configureCommand.send()
-            const configDuration = performance.now() - configStartTime
+            const configDuration = await sendBuffer(configureCommand, `Interval ${intervalIndex + 1}: configure only`)
             setCommandLog((previous) => appendCommandHistory(previous, `[diag] Configure buffer sent in ${configDuration.toFixed(1)}ms`))
+            if (isLastInterval) {
+              screenSent = true
+            }
           }
 
           intervalIndex += 1
@@ -500,7 +579,6 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
       }
 
       if (!screenSent) {
-        const screenStartTime = performance.now()
         const screenCommand = pm5
           .newCsafeBuffer()
           .setScreenState({
@@ -508,8 +586,7 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
             value: SCREEN_VALUE_PREPARE_TO_ROW,
           })
         setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer('Final: workout screen', screenCommand)))
-        await screenCommand.send()
-        const screenDuration = performance.now() - screenStartTime
+        const screenDuration = await sendBuffer(screenCommand, 'Final: workout screen')
         setCommandLog((previous) => appendCommandHistory(previous, `[diag] Screen buffer sent in ${screenDuration.toFixed(1)}ms`))
       }
 
@@ -588,9 +665,9 @@ export default function Pm5WorkoutSender({ workout, intervals }: Pm5WorkoutSende
             <button
               type="button"
               onClick={sendWorkoutToPm5}
-              disabled={!estimated2kSeconds || estimated2kSeconds <= 0 || !pm5 || !isConnected || isSending || isMonitoringWorkout || orderedIntervals.length === 0}
+              disabled={(requireEstimated2k && (!estimated2kSeconds || estimated2kSeconds <= 0)) || !pm5 || !isConnected || isSending || isMonitoringWorkout || orderedIntervals.length === 0}
             >
-              Send workout to PM5
+              {sendButtonLabel}
             </button>
           </div>
           <label className="pm5-workout-sender-stay-connected">

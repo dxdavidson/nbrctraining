@@ -41,7 +41,7 @@ The API currently expects the database tables to contain plan, block, workout, a
 
 ## Navigation
 
-The default **Rowing Plans** page is available at `/`. The main navigation also includes placeholders for `/ramp-test` and `/round-robin-ergos`, ready for their respective features. The **Admin** menu contains the workout importer.
+The default **Rowing Plans** page is available at `/`. **Ramp Test** at `/ramp-test` generates and sends a configurable one-minute watt ramp, then estimates 2K pace from the final complete and partial stages. **Round Robin Ergos** remains a placeholder. The **Admin** menu contains the workout importer.
 
 ## CSV workout import
 
@@ -199,6 +199,7 @@ For a standalone time-based workout such as 5:00 (300 seconds), the app follows 
 - **For fixed time intervals, send duration first, then rest/configure/screen together.**
 - **For multi-interval workouts, use `variableInterval` (`workoutType=8`) for every interval and send one final screen command.**
 - **Use `durationType=0x00`** for time-based intervals, `0x80` for distance.
+- **Ramp-test intervals use `setTargetAverageWatt`** for their target power. Select Watts and PaceBoat manually on the PM5; ErgometerJS does not expose commands to set either display option.
 - Real PM5 validation confirmed both distance and time workouts work with these sequences.
 
 ## PM5 regression tests
