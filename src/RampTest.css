@@ -61,6 +61,10 @@
   border-bottom: 1px solid var(--border);
 }
 
+.ramp-test-stage-table input {
+  width: 5rem;
+}
+
 .ramp-test-stage-table caption {
   padding-bottom: 0.5rem;
   font-weight: 700;

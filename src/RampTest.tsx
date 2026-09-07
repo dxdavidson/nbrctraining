@@ -9,8 +9,7 @@ const DEFAULT_START_WATTS = 100
 const DEFAULT_INCREMENT_WATTS = 15
 const DEFAULT_STAGE_COUNT = 10
 const DEFAULT_2K_PERCENTAGE = 85
-// The PM5 can only hold ~10 pre-programmed CSAFE intervals before rejecting further ones (error 162-301).
-const MAX_STAGE_COUNT = 10
+
 function isPositiveWholeNumber(value: number): boolean {
   return Number.isInteger(value) && value > 0
 }
@@ -39,6 +38,7 @@ export default function RampTest() {
     stageCount: DEFAULT_STAGE_COUNT,
     conversionPercentage: DEFAULT_2K_PERCENTAGE,
   })
+  const [targetOverrides, setTargetOverrides] = useState<Record<string, number>>({})
   const [lastCompletedWatts, setLastCompletedWatts] = useState('')
   const [nextStageSeconds, setNextStageSeconds] = useState('')
 
@@ -46,15 +46,17 @@ export default function RampTest() {
     isPositiveWholeNumber(settings.startWatts) &&
     isPositiveWholeNumber(settings.incrementWatts) &&
     Number.isInteger(settings.stageCount) &&
-    settings.stageCount >= 2 &&
-    settings.stageCount <= MAX_STAGE_COUNT &&
+    settings.stageCount >= 1 &&
     Number.isFinite(settings.conversionPercentage) &&
     settings.conversionPercentage > 0 &&
     settings.conversionPercentage <= 100
-  const intervals = useMemo(
-    () => settingsAreValid ? buildRampIntervals(settings) : [],
-    [settings, settingsAreValid]
-  )
+  const intervals = useMemo(() => {
+    if (!settingsAreValid) return []
+    return buildRampIntervals(settings).map((interval) => ({
+      ...interval,
+      target_value: targetOverrides[interval.id] ?? interval.target_value,
+    }))
+  }, [settings, settingsAreValid, targetOverrides])
   const result = useMemo(
     () => settingsAreValid
       ? calculateRampResult(settings, Number(lastCompletedWatts), Number(nextStageSeconds))
@@ -64,7 +66,12 @@ export default function RampTest() {
   const canCalculate = result !== null
 
   const updateSetting = (key: keyof RampSettings, value: string) => {
+    setTargetOverrides({})
     setSettings((current) => ({ ...current, [key]: Number(value) }))
+  }
+
+  const updateTarget = (intervalId: string, value: string) => {
+    setTargetOverrides((current) => ({ ...current, [intervalId]: Number(value) }))
   }
 
   return (
@@ -89,14 +96,14 @@ export default function RampTest() {
           </label>
           <label>
             Number of stages
-            <input type="number" min="2" max={MAX_STAGE_COUNT} step="1" value={settings.stageCount} onChange={(event) => updateSetting('stageCount', event.target.value)} />
+            <input type="number" min="1" step="1" value={settings.stageCount} onChange={(event) => updateSetting('stageCount', event.target.value)} />
           </label>
           <label>
             2K conversion (%)
             <input type="number" min="1" max="100" step="1" value={settings.conversionPercentage} onChange={(event) => updateSetting('conversionPercentage', event.target.value)} />
           </label>
         </div>
-        {!settingsAreValid && <p className="ramp-test-error" role="alert">Use positive whole-number targets, {MAX_STAGE_COUNT} stages or fewer (the PM5 can't hold more pre-programmed intervals), and a conversion from 1% to 100%.</p>}
+        {!settingsAreValid && <p className="ramp-test-error" role="alert">Use positive whole-number targets, at least 1 stage, and a conversion from 1% to 100%.</p>}
       </section>
 
       <section className="ramp-test-section" aria-labelledby="ramp-protocol-heading">
@@ -110,15 +117,25 @@ export default function RampTest() {
           <table className="ramp-test-stage-table">
             <caption>PM5 stages</caption>
             <thead>
-              <tr><th>Stage</th><th>Duration</th><th>Target</th><th>Pace /500m</th></tr>
+              <tr><th>Stage</th><th>Duration</th><th>Target</th><th>Pace /500m</th><th>Recovery</th></tr>
             </thead>
             <tbody>
               {intervals.map((interval) => (
                 <tr key={interval.id}>
                   <td>{interval.interval_order}</td>
                   <td>1:00</td>
-                  <td>{interval.target_value} W</td>
-                  <td>{interval.target_value != null ? formatTime(secondsPer500mFromWatts(interval.target_value)) : '--'}</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      aria-label={`Stage ${interval.interval_order} target (W)`}
+                      value={interval.target_value ?? ''}
+                      onChange={(event) => updateTarget(interval.id, event.target.value)}
+                    />
+                  </td>
+                  <td>{interval.target_value != null && interval.target_value > 0 ? formatTime(secondsPer500mFromWatts(interval.target_value)) : '--'}</td>
+                  <td>{interval.recovery_kind === 'time' && interval.recovery_value != null ? formatTime(interval.recovery_value) : '--'}</td>
                 </tr>
               ))}
             </tbody>

@@ -27,6 +27,7 @@ const DURATION_TYPE_DISTANCE = 0x80
 const DURATION_TYPE_TIME = 0x00
 const SCREEN_TYPE_WORKOUT = 1
 const SCREEN_VALUE_PREPARE_TO_ROW = 1
+const SCREEN_STATE_INTERVAL_CADENCE = 10
 // Placeholder pace (2:00/500m) used only to force the PM5's unit display to Pace/500m; the monitor ignores it when a real target exists.
 const DUMMY_PACE_HUNDREDTHS = 12000
 
@@ -199,7 +200,8 @@ function logIntervalDiagnostics(
     `  workValue: ${workValue}${isDistanceBased ? 'm' : 's'}`,
     `  recoverySeconds: ${recoverySeconds}s`,
     `  targetMode: ${interval.target_mode ?? 'null'}`,
-    `  targetValue: ${interval.target_value ?? 'null'}${interval.target_mode === 'watts' ? ' (converted to pace target for PM5)' : ''}`,
+    `  targetValue: ${interval.target_value ?? 'null'}`,
+    `  targetEncoding: ${target === null ? 'none' : target.kind === 'watts' ? 'direct watts (PM_SET_TARGETAVGWATTS)' : interval.target_mode === 'watts' ? 'pace conversion from watts (PM_SET_TARGETPACETIME)' : 'pace target (PM_SET_TARGETPACETIME)'}`,
     `  target: ${target ? target.kind === 'pace' ? `${target.value} hundredths pace` : `${target.value} watts` : 'null (skipped)'}`,
   ]
   return lines.join('\n')
@@ -234,8 +236,6 @@ type Pm5Target =
 
 function toPm5Target(interval: Interval, estimated2kSeconds: number | null): Pm5Target | null {
   if (interval.target_mode === 'watts') {
-    // The PM5 only reliably accepts setTargetAverageWatt for ~2 intervals before erroring (162-301);
-    // convert to a pace-equivalent target instead, matching the path already proven for 12+ interval workouts.
     const watts = interval.target_value
     if (watts == null || !Number.isFinite(watts) || watts <= 0) {
       return null
@@ -483,8 +483,8 @@ export default function Pm5WorkoutSender({
             const configureCommand = pm5
               .newCsafeBuffer()
               .setRestDuration({ value: recoverySeconds })
-            if (target?.kind === 'watts') {
-              configureCommand.setTargetAverageWatt({ value: target.value })
+            if (interval.target_mode === 'watts' && interval.target_value != null && Number.isFinite(interval.target_value) && interval.target_value > 0) {
+              configureCommand.setTargetAverageWatt({ value: Math.round(interval.target_value) })
             }
             configureCommand
               .setConfigureWorkout({ programmingMode: true })
@@ -502,14 +502,17 @@ export default function Pm5WorkoutSender({
 
           const target = withPreferredUnitsFallback(rawTarget, preferredUnits)
           const isLastInterval = intervalIndex === totalIntervalCount - 1
+          const shouldSendScreen = isLastInterval || (intervalIndex > 0 && intervalIndex % SCREEN_STATE_INTERVAL_CADENCE === 0)
 
           setCommandLog((previous) => appendCommandHistory(previous, logIntervalDiagnostics(intervalIndex, interval, intervalType, durationType, workValue, recoverySeconds, isDistanceBased, target)))
 
           const setupBuffer = pm5
             .newCsafeBuffer()
             .setWorkoutIntervalCount({ value: intervalIndex })
-            .setWorkoutType({ value: WORKOUT_TYPE_VARIABLE_INTERVAL })
-            .setIntervalType({ value: intervalType })
+          if (intervalIndex === 0) {
+            setupBuffer.setWorkoutType({ value: WORKOUT_TYPE_VARIABLE_INTERVAL })
+          }
+          setupBuffer.setIntervalType({ value: intervalType })
           setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: setup`, setupBuffer)))
           const setupDuration = await sendBuffer(setupBuffer, `Interval ${intervalIndex + 1}: setup`)
           setCommandLog((previous) => appendCommandHistory(previous, `[diag] Setup buffer sent in ${setupDuration.toFixed(1)}ms`))
@@ -530,14 +533,14 @@ export default function Pm5WorkoutSender({
               targetCommand.setTargetAverageWatt({ value: target.value })
             }
             targetCommand.setConfigureWorkout({ programmingMode: true })
-            if (isLastInterval) {
-              // setScreenState must ride along with the final setConfigureWorkout buffer - a standalone buffer sent after configure times out on real devices.
+            if (shouldSendScreen) {
+              // The PM5 requires a screen command when programming interval 11 and later ten-interval boundaries.
               targetCommand.setScreenState({
                 screenType: SCREEN_TYPE_WORKOUT,
                 value: SCREEN_VALUE_PREPARE_TO_ROW,
               })
             }
-            setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: target + configure${isLastInterval ? ' + screen' : ''}`, targetCommand)))
+            setCommandLog((previous) => appendCommandHistory(previous, summarizeCommandBuffer(`Interval ${intervalIndex + 1}: target + configure${shouldSendScreen ? ' + screen' : ''}`, targetCommand)))
             const targetDuration = await sendBuffer(targetCommand, `Interval ${intervalIndex + 1}: target + configure`)
             setCommandLog((previous) => appendCommandHistory(previous, `[diag] Target/configure buffer sent in ${targetDuration.toFixed(1)}ms`))
             if (isLastInterval) {
