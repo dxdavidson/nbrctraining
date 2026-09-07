@@ -5,8 +5,8 @@ import PlanDescription from './PlanDescription'
 import PaceGuidanceTool from './PaceGuidanceTool'
 import AboutBox from './AboutBox'
 import Navigation from './Navigation'
-import FeaturePlaceholder from './FeaturePlaceholder'
 import RampTest from './RampTest'
+import RoundRobinErgos from './RoundRobinErgos'
 
 function App() {
   // Strip the deploy base path (e.g. "/training/") so route matching works when hosted under a sub-path.
@@ -24,12 +24,7 @@ function App() {
   } else if (routePath === '/ramp-test') {
     content = <RampTest />
   } else if (routePath === '/round-robin-ergos') {
-    content = (
-      <FeaturePlaceholder
-        title="Round Robin Ergos"
-        description="Round robin erg sessions will be available here."
-      />
-    )
+    content = <RoundRobinErgos />
   } else if (routePath === '/tools/pace-guidance') {
     content = <PaceGuidanceTool />
   } else {

@@ -1,0 +1,87 @@
+.round-robin-ergos {
+  width: min(58rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.round-robin-ergos-kicker {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.round-robin-ergos h1 {
+  margin: 0.5rem 0 1rem;
+}
+
+.round-robin-ergos-intro {
+  max-width: 46rem;
+}
+
+.round-robin-ergos-section {
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.round-robin-ergos-section h2 {
+  margin-top: 0;
+}
+
+.round-robin-ergos-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+
+.round-robin-ergos-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.round-robin-ergos-settings input {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.round-robin-ergos-error {
+  color: var(--danger, #c62828);
+}
+
+.round-robin-ergos-result {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+
+.round-robin-ergos-result div {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.round-robin-ergos-result dt {
+  font-size: 0.85rem;
+  color: var(--text-l, #666);
+}
+
+.round-robin-ergos-result dd {
+  margin: 0.25rem 0 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
