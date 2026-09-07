@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react'
 import type { Workout } from './api'
 import Pm5WorkoutSender from './Pm5WorkoutSender'
-import { buildRampIntervals, calculateRampResult, type RampSettings } from './rampTestMath'
+import {
+  buildRampIntervals,
+  calculateRampResult,
+  ESTIMATED_2K_RANGES,
+  startWattsForEstimated2kRange,
+  type RampSettings,
+} from './rampTestMath'
 import { secondsPer500mFromWatts } from './wolverinePace'
 import './RampTest.css'
 
@@ -39,6 +45,7 @@ export default function RampTest() {
     conversionPercentage: DEFAULT_2K_PERCENTAGE,
   })
   const [targetOverrides, setTargetOverrides] = useState<Record<string, number>>({})
+  const [estimated2kRange, setEstimated2kRange] = useState('')
   const [lastCompletedWatts, setLastCompletedWatts] = useState('')
   const [nextStageSeconds, setNextStageSeconds] = useState('')
 
@@ -70,6 +77,17 @@ export default function RampTest() {
     setSettings((current) => ({ ...current, [key]: Number(value) }))
   }
 
+  const updateEstimated2kRange = (value: string) => {
+    setEstimated2kRange(value)
+    const range = ESTIMATED_2K_RANGES.find((option) => option.value === value)
+    if (!range) return
+    setTargetOverrides({})
+    setSettings((current) => ({
+      ...current,
+      startWatts: startWattsForEstimated2kRange(range.midpointSeconds, current.incrementWatts, current.conversionPercentage),
+    }))
+  }
+
   const updateTarget = (intervalId: string, value: string) => {
     setTargetOverrides((current) => ({ ...current, [intervalId]: Number(value) }))
   }
@@ -86,6 +104,15 @@ export default function RampTest() {
       <section className="ramp-test-section" aria-labelledby="ramp-settings-heading">
         <h2 id="ramp-settings-heading">Coach settings</h2>
         <div className="ramp-test-settings">
+          <label>
+            Estimated 2K time
+            <select value={estimated2kRange} onChange={(event) => updateEstimated2kRange(event.target.value)}>
+              <option value="">Set starting target manually</option>
+              {ESTIMATED_2K_RANGES.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
           <label>
             Starting target (W)
             <input type="number" min="1" step="1" value={settings.startWatts} onChange={(event) => updateSetting('startWatts', event.target.value)} />

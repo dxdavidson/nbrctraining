@@ -1,13 +1,59 @@
 import type { Interval } from './api'
-import { secondsPer500mFromWatts } from './wolverinePace'
+import { secondsPer500mFromWatts, wattsFromSecondsPer500m } from './wolverinePace'
 
 const STAGE_DURATION_SECONDS = 60
+
+// Starting watts is chosen so the midpoint of a selected 2K range fails around this stage.
+const TARGET_COMPLETED_STAGES = 7
 
 export interface RampSettings {
   startWatts: number
   incrementWatts: number
   stageCount: number
   conversionPercentage: number
+}
+
+export interface Estimated2kRangeOption {
+  value: string
+  label: string
+  midpointSeconds: number
+}
+
+function parseMinutesSeconds(value: string): number {
+  const [minutes, seconds] = value.split(':').map(Number)
+  return minutes * 60 + seconds
+}
+
+const ESTIMATED_2K_RANGE_LABELS = [
+  '9:30-10:00',
+  '9:00-9:30',
+  '8:30-9:00',
+  '8:00-8:30',
+  '7:30-8:00',
+  '7:00-7:30',
+  '6:30-7:00',
+  '6:00-6:30',
+]
+
+export const ESTIMATED_2K_RANGES: Estimated2kRangeOption[] = ESTIMATED_2K_RANGE_LABELS.map((label) => {
+  const [low, high] = label.split('-')
+  return {
+    value: label,
+    label,
+    midpointSeconds: (parseMinutesSeconds(low) + parseMinutesSeconds(high)) / 2,
+  }
+})
+
+export function startWattsForEstimated2kRange(
+  midpointSeconds: number,
+  incrementWatts: number,
+  conversionPercentage: number
+): number {
+  const secondsPer500m = midpointSeconds / 4
+  const estimated2kWatts = wattsFromSecondsPer500m(secondsPer500m)
+  const peakWatts = estimated2kWatts / (conversionPercentage / 100)
+  const startWatts = peakWatts - incrementWatts * (TARGET_COMPLETED_STAGES - 1)
+  return Math.max(1, Math.round(startWatts / 5) * 5)
 }
 
 export interface RampResult {
