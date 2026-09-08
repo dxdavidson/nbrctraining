@@ -7,6 +7,8 @@ import AboutBox from './AboutBox'
 import Navigation from './Navigation'
 import RampTest from './RampTest'
 import RoundRobinErgos from './RoundRobinErgos'
+import RowingMachineTechnique from './RowingMachineTechnique'
+import OnTheWaterTechnique from './OnTheWaterTechnique'
 
 function App() {
   // Strip the deploy base path (e.g. "/training/") so route matching works when hosted under a sub-path.
@@ -25,6 +27,10 @@ function App() {
     content = <RampTest />
   } else if (routePath === '/round-robin-ergos') {
     content = <RoundRobinErgos />
+  } else if (routePath === '/technique/rowing-machine') {
+    content = <RowingMachineTechnique />
+  } else if (routePath === '/technique/on-the-water') {
+    content = <OnTheWaterTechnique />
   } else if (routePath === '/tools/pace-guidance') {
     content = <PaceGuidanceTool />
   } else {

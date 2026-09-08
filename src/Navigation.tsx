@@ -10,6 +10,7 @@ function appPath(path = '') {
 
 export default function Navigation({ routePath }: NavigationProps) {
   const isAdminRoute = routePath.startsWith('/admin')
+  const isTechniqueRoute = routePath.startsWith('/technique')
 
   return (
     <header className="site-header">
@@ -23,6 +24,23 @@ export default function Navigation({ routePath }: NavigationProps) {
         <a className={routePath === '/ramp-test' ? 'is-active' : undefined} href={appPath('ramp-test')}>
           Ramp Test
         </a>
+        <details className="technique-navigation" open={isTechniqueRoute}>
+          <summary className={isTechniqueRoute ? 'is-active' : undefined}>Technique</summary>
+          <div className="technique-navigation-menu">
+            <a
+              className={routePath === '/technique/rowing-machine' ? 'is-active' : undefined}
+              href={appPath('technique/rowing-machine')}
+            >
+              Rowing Machine
+            </a>
+            <a
+              className={routePath === '/technique/on-the-water' ? 'is-active' : undefined}
+              href={appPath('technique/on-the-water')}
+            >
+              On The Water
+            </a>
+          </div>
+        </details>
         <a
           className={routePath === '/round-robin-ergos' ? 'is-active' : undefined}
           href={appPath('round-robin-ergos')}

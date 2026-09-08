@@ -22,7 +22,8 @@
 }
 
 .site-navigation a,
-.admin-navigation summary {
+.admin-navigation summary,
+.technique-navigation summary {
   display: block;
   padding: 0.5rem 0.65rem;
   border-radius: 4px;
@@ -35,39 +36,47 @@
 }
 
 .site-navigation a:hover,
-.admin-navigation summary:hover {
+.admin-navigation summary:hover,
+.technique-navigation summary:hover {
   color: var(--text-h);
   background: var(--accent-bg);
 }
 
 .site-navigation .is-active,
-.admin-navigation summary.is-active {
+.admin-navigation summary.is-active,
+.technique-navigation summary.is-active {
   color: var(--accent);
   background: var(--accent-bg);
 }
 
-.admin-navigation {
+.admin-navigation,
+.technique-navigation {
   position: relative;
 }
 
-.admin-navigation summary {
+.admin-navigation summary,
+.technique-navigation summary {
   list-style: none;
 }
 
-.admin-navigation summary::-webkit-details-marker {
+.admin-navigation summary::-webkit-details-marker,
+.technique-navigation summary::-webkit-details-marker {
   display: none;
 }
 
-.admin-navigation summary::after {
+.admin-navigation summary::after,
+.technique-navigation summary::after {
   content: '\25BE';
   margin-left: 0.4rem;
 }
 
-.admin-navigation[open] summary::after {
+.admin-navigation[open] summary::after,
+.technique-navigation[open] summary::after {
   content: '\25B4';
 }
 
-.admin-navigation-menu {
+.admin-navigation-menu,
+.technique-navigation-menu {
   position: absolute;
   z-index: 1;
   top: calc(100% + 0.35rem);

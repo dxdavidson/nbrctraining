@@ -1,0 +1,52 @@
+.technique-page {
+  width: min(48rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+  text-align: left;
+  color: var(--text);
+}
+
+.technique-page-kicker {
+  margin-bottom: 0.5rem;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.technique-page h1 {
+  margin: 0 0 2rem;
+  line-height: 1.1;
+}
+
+.technique-page h2,
+.technique-page h3,
+.technique-page h4 {
+  margin-top: 2rem;
+}
+
+.technique-page p {
+  margin: 1rem 0;
+}
+
+.youtube-thumbnail-link {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 1rem 0;
+  text-decoration: none;
+}
+
+.youtube-thumbnail {
+  width: 100%;
+  max-width: 24rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.youtube-thumbnail-caption {
+  color: var(--accent);
+  font-weight: 600;
+}
