@@ -19,6 +19,8 @@
   margin-top: 0;
 }
 
+.install-guide-content img { width: 25%; max-width: 100%; }
+
 .install-guide-content p,
 .install-guide-content li {
   color: var(--text);

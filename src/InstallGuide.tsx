@@ -12,13 +12,14 @@ export default function InstallGuide({ page }: InstallGuideProps) {
   const [markdown, setMarkdown] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
 
   useEffect(() => {
     let active = true
     setLoading(true)
     setError(null)
 
-    fetch(`/install/${page}.md`)
+    fetch(`${base}/install/${page}.md`)
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`Unable to load install guide: ${response.status}`)
