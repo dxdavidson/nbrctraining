@@ -9,6 +9,7 @@ import RampTest from './RampTest'
 import RoundRobinErgos from './RoundRobinErgos'
 import RowingMachineTechnique from './RowingMachineTechnique'
 import OnTheWaterTechnique from './OnTheWaterTechnique'
+import InstallGuide from './InstallGuide'
 
 function App() {
   // Strip the deploy base path (e.g. "/training/") so route matching works when hosted under a sub-path.
@@ -33,6 +34,12 @@ function App() {
     content = <OnTheWaterTechnique />
   } else if (routePath === '/tools/pace-guidance') {
     content = <PaceGuidanceTool />
+  } else if (routePath === '/install') {
+    content = <InstallGuide page="index" />
+  } else if (routePath === '/install/android') {
+    content = <InstallGuide page="android" />
+  } else if (routePath === '/install/apple') {
+    content = <InstallGuide page="apple" />
   } else {
     const planMatch = routePath.match(/^\/plans\/([^/]+)$/)
     content = planMatch ? (

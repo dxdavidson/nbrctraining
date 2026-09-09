@@ -6,6 +6,9 @@
 }
 
 .about-box-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font: inherit;
   font-size: 0.85rem;
   padding: 0.3rem 0.6rem;
@@ -14,10 +17,23 @@
   background: var(--bg);
   color: var(--text-h);
   opacity: 0.75;
+  cursor: pointer;
+}
+
+.about-box-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+  opacity: 0.85;
 }
 
 .about-box-toggle:hover,
 .about-box-toggle:focus-visible {
+  opacity: 1;
+}
+
+.about-box-toggle:hover .about-box-icon,
+.about-box-toggle:focus-visible .about-box-icon {
   opacity: 1;
 }
 

@@ -11,6 +11,7 @@ function appPath(path = '') {
 export default function Navigation({ routePath }: NavigationProps) {
   const isAdminRoute = routePath.startsWith('/admin')
   const isTechniqueRoute = routePath.startsWith('/technique')
+  const isInstallRoute = routePath.startsWith('/install')
 
   return (
     <header className="site-header">
@@ -47,6 +48,20 @@ export default function Navigation({ routePath }: NavigationProps) {
         >
           Round Robin Ergos
         </a>
+        <details className="admin-navigation" open={isInstallRoute}>
+          <summary className={isInstallRoute ? 'is-active' : undefined}>Install App</summary>
+          <div className="admin-navigation-menu">
+            <a className={routePath === '/install' ? 'is-active' : undefined} href={appPath('install')}>
+              Overview
+            </a>
+            <a className={routePath === '/install/android' ? 'is-active' : undefined} href={appPath('install/android')}>
+              Android
+            </a>
+            <a className={routePath === '/install/apple' ? 'is-active' : undefined} href={appPath('install/apple')}>
+              Apple
+            </a>
+          </div>
+        </details>
         <details className="admin-navigation" open={isAdminRoute}>
           <summary className={isAdminRoute ? 'is-active' : undefined}>Admin</summary>
           <div className="admin-navigation-menu">

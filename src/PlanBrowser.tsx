@@ -162,16 +162,19 @@ const intervalColumns: Column<IntervalRow>[] = [
 
 function IntervalsTable({ intervals, estimated2kSeconds, loading }: { intervals: Interval[]; estimated2kSeconds: number | null; loading: boolean }) {
   return (
-    <DataTable
-      caption="Intervals"
-      columns={intervalColumns}
-      rows={intervals.map((i) => toIntervalRow(i, estimated2kSeconds))}
-      getRowId={(i) => i.id}
-      selectedId={null}
-      onSelectRow={() => {}}
-      loading={loading}
-      emptyMessage="No intervals in this workout."
-    />
+    <>
+      <p className="intervals-table-note"><strong>Priority is the bold target: if SPM is bold, focus on stroke rate; if pace is bold, focus on pace.</strong></p>
+      <DataTable
+        caption="Intervals"
+        columns={intervalColumns}
+        rows={intervals.map((i) => toIntervalRow(i, estimated2kSeconds))}
+        getRowId={(i) => i.id}
+        selectedId={null}
+        onSelectRow={() => {}}
+        loading={loading}
+        emptyMessage="No intervals in this workout."
+      />
+    </>
   )
 }
 
