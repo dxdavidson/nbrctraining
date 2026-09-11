@@ -25,6 +25,7 @@ import {
   type Interval,
 } from './api'
 import Pm5WorkoutSender from './Pm5WorkoutSender'
+import MarkdownDescription from './components/MarkdownDescription'
 import './PlanBrowser.css'
 
 const planColumns: Column<PlanRow>[] = [
@@ -50,7 +51,7 @@ const planColumns: Column<PlanRow>[] = [
 const blockColumns: Column<BlockRow>[] = [
   { key: 'title', header: 'Title', render: (b) => b.title, sortValue: (b) => b.title },
   { key: 'start_date', header: 'Start Date', render: (b) => b.startDateDisplay, sortValue: (b) => b.start_date },
-  { key: 'description', header: 'Description', render: (b) => b.description ?? '—' },
+  { key: 'description', header: 'Description', render: (b) => <MarkdownDescription value={b.description} className="table-markdown-description" /> },
 ]
 
 const LEVEL_INFO: Record<string, { label: string; className: string }> = {
@@ -133,7 +134,7 @@ const workoutColumns: Column<WorkoutRow>[] = [
     ),
     render: (w) => <LevelBadge level={w.level} />,
   },
-  { key: 'description', header: 'Description', render: (w) => w.description ?? '—' },
+  { key: 'description', header: 'Description', render: (w) => <MarkdownDescription value={w.description} className="table-markdown-description" /> },
 ]
 
 const intervalColumns: Column<IntervalRow>[] = [
@@ -285,8 +286,7 @@ export default function PlanBrowser() {
   const weekPicker = distinctWeeks.length > 0 && (
     <label className="plan-browser-week-picker">
       Week
-      <select value={week ?? ''} onChange={(e) => setSelection({ week: e.target.value || null })}>
-        <option value="">{currentWeek ? `w/c ${formatDate(currentWeek)}` : 'This week'}</option>
+      <select value={week ?? currentWeek ?? ''} onChange={(e) => setSelection({ week: e.target.value || null })}>
         {distinctWeeks.map((w) => (
           <option key={w} value={w}>
             w/c {formatDate(w)}

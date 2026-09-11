@@ -49,6 +49,23 @@ afterEach(() => {
 })
 
 describe('PlanBrowser drill-down (narrow layout)', () => {
+  it('lists the current week once in the Week filter', async () => {
+    vi.mocked(api.fetchWorkouts).mockResolvedValue([
+      { ...workout, week_commencing: '2026-09-28' },
+    ])
+
+    const user = userEvent.setup()
+    render(<PlanBrowser />)
+
+    const plansTable = await screen.findByRole('table', { name: 'Plans' })
+    await user.click(within(plansTable).getByText('Plan One'))
+    const blocksTable = await screen.findByRole('table', { name: 'Blocks' })
+    await user.click(within(blocksTable).getByText('Block One'))
+
+    const weekPicker = await screen.findByLabelText('Week')
+    expect(within(weekPicker).getAllByRole('option', { name: 'w/c 28 Sept 26' })).toHaveLength(1)
+  })
+
   it('does not provide expansion controls for workouts without intervals', async () => {
     vi.mocked(api.fetchWorkouts).mockResolvedValue([
       { ...workout, id: 'otw1', wk_type: 'OTW', workout_code: 'W1_OTW1', has_intervals: undefined },

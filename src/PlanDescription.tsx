@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
-import rehypeSanitize from 'rehype-sanitize'
-import remarkGfm from 'remark-gfm'
 import { fetchPlans, type Plan } from './api'
+import MarkdownDescription from './components/MarkdownDescription'
 import './PlanDescription.css'
 
 interface PlanDescriptionProps {
@@ -42,9 +40,7 @@ export default function PlanDescription({ planId }: PlanDescriptionProps) {
           <p className="plan-description-kicker">{plan.plan_code}</p>
           <h1 id="plan-description-title">{plan.title}</h1>
           {plan.description?.trim() ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-              {plan.description}
-            </ReactMarkdown>
+            <MarkdownDescription value={plan.description} />
           ) : (
             <p>This plan does not have a description.</p>
           )}

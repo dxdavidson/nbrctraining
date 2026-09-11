@@ -156,6 +156,24 @@
   overflow-wrap: anywhere;
 }
 
+.data-table-blocks td:nth-child(4) {
+  white-space: normal;
+}
+
+.table-markdown-description p {
+  margin: 0 0 0.5rem;
+}
+
+.table-markdown-description p:last-child {
+  margin-bottom: 0;
+}
+
+.table-markdown-description ul,
+.table-markdown-description ol {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+}
+
 .data-table-intervals {
   width: max-content;
   min-width: 0;

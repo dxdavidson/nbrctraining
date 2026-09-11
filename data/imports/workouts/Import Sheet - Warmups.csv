@@ -1,0 +1,10 @@
+plan_code,block_code,wk_type,workout_code,week_commencing,description,sort_order,level,interval_code,interval_order,repeat_count,work_kind,work_value,spm,recovery_kind,recovery_value,target_mode,target_value
+Others,Warmups,Ergo,Warmup8min,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,Warmup8min_1,1,1,time,120,20,,,L4,
+Others,Warmups,Ergo,Warmup8min,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,Warmup8min_2,2,1,time,30,,,,two_k_pace_multiplier,9
+Others,Warmups,Ergo,Warmup8min,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,Warmup8min_3,3,1,time,60,20,,,L4,
+Others,Warmups,Ergo,Warmup8min,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,Warmup8min_4,4,1,time,30,,,,two_k_pace_multiplier,6
+Others,Warmups,Ergo,Warmup8min,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,Warmup8min_5,5,1,time,60,20,,,L4,
+Others,Warmups,Ergo,Warmup8min,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,Warmup8min_6,6,1,time,30,,,,two_k_pace_multiplier,3
+Others,Warmups,Ergo,Warmup8min,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,Warmup8min_7,7,1,time,60,20,,,L4,
+Others,Warmups,Ergo,Warmup8min,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,Warmup8min_8,8,1,time,30,,,,two_k_pace_multiplier,0
+Others,Warmups,Ergo,Warmup8min,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,Warmup8min_9,9,1,time,60,20,,,L4,
