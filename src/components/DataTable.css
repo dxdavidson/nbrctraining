@@ -156,6 +156,45 @@
   overflow-wrap: anywhere;
 }
 
+@media (max-width: 600px) {
+  .data-table-workouts {
+    min-width: 35rem;
+    font-size: 0.9rem;
+  }
+
+  .data-table-workouts th,
+  .data-table-workouts td {
+    padding: 0.5rem 0.5rem;
+  }
+
+  .data-table-workouts th:first-child,
+  .data-table-workouts td:first-child {
+    width: 2.5rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+
+  .data-table-workouts th:nth-child(2),
+  .data-table-workouts td:nth-child(2) {
+    width: 17%;
+  }
+
+  .data-table-workouts th:nth-child(3),
+  .data-table-workouts td:nth-child(3) {
+    width: 20%;
+  }
+
+  .data-table-workouts th:nth-child(4),
+  .data-table-workouts td:nth-child(4) {
+    width: 22%;
+  }
+
+  .data-table-workouts th:nth-child(5),
+  .data-table-workouts td:nth-child(5) {
+    width: 41%;
+  }
+}
+
 .data-table-blocks td:nth-child(4) {
   white-space: normal;
 }

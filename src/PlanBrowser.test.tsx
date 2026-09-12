@@ -63,7 +63,7 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
     await user.click(within(blocksTable).getByText('Block One'))
 
     const weekPicker = await screen.findByLabelText('Week')
-    expect(within(weekPicker).getAllByRole('option', { name: 'w/c 28 Sept 26' })).toHaveLength(1)
+    expect(within(weekPicker).getAllByRole('option', { name: 'w/c 28 Sep 26' })).toHaveLength(1)
   })
 
   it('does not provide expansion controls for workouts without intervals', async () => {
