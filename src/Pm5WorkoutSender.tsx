@@ -27,6 +27,8 @@ const DURATION_TYPE_DISTANCE = 0x80
 const DURATION_TYPE_TIME = 0x00
 const SCREEN_TYPE_WORKOUT = 1
 const SCREEN_VALUE_PREPARE_TO_ROW = 1
+const MAX_PM5_VARIABLE_INTERVALS = 10
+// Re-send the workout screen every 10 intervals, and also on the final interval, to match the PM5's observed 10-interval refresh boundary.
 const SCREEN_STATE_INTERVAL_CADENCE = 10
 // Placeholder pace (2:00/500m) used only to force the PM5's unit display to Pace/500m; the monitor ignores it when a real target exists.
 const DUMMY_PACE_HUNDREDTHS = 12000
@@ -271,7 +273,7 @@ export default function Pm5WorkoutSender({
   intervals,
   requireEstimated2k = true,
   sendButtonLabel = 'Send workout to PM5',
-  preferredUnits = 'pace',
+  preferredUnits = 'watts',
 }: Pm5WorkoutSenderProps & { requireEstimated2k?: boolean; sendButtonLabel?: string; preferredUnits?: Pm5PreferredUnits }) {
   const diagnosticsEnabled = new URLSearchParams(window.location.search).get('diagnostics') === '1'
   const [estimated2kSeconds] = useEstimated2kSeconds()
@@ -455,9 +457,19 @@ export default function Pm5WorkoutSender({
         0
       )
       const useVariableInterval = totalIntervalCount > 1
-      for (const interval of orderedIntervals) {
+      const hasPaceTargets = orderedIntervals.some((interval) => toPm5Target(interval, estimated2kSeconds) !== null)
+      const effectiveIntervalCount = hasPaceTargets
+        ? Math.min(totalIntervalCount, MAX_PM5_VARIABLE_INTERVALS)
+        : totalIntervalCount
+      if (totalIntervalCount > effectiveIntervalCount) {
+        setCommandLog((previous) => appendCommandHistory(previous, `[info] PM5 pace-target workouts are limited to ${MAX_PM5_VARIABLE_INTERVALS} intervals. Sending only the first ${effectiveIntervalCount}.`))
+      }
+      outerLoop: for (const interval of orderedIntervals) {
         const repeatCount = Math.max(1, interval.repeat_count ?? 1)
         for (let repeat = 0; repeat < repeatCount; repeat += 1) {
+          if (intervalIndex >= effectiveIntervalCount) {
+            break outerLoop
+          }
           const intervalType = getIntervalType(interval.work_kind)
           const durationType = getDurationType(interval.work_kind)
           const workValue = interval.work_value ?? 0
@@ -501,8 +513,9 @@ export default function Pm5WorkoutSender({
           }
 
           const target = withPreferredUnitsFallback(rawTarget, preferredUnits)
-          const isLastInterval = intervalIndex === totalIntervalCount - 1
-          const shouldSendScreen = isLastInterval || (intervalIndex > 0 && intervalIndex % SCREEN_STATE_INTERVAL_CADENCE === 0)
+          const isLastInterval = intervalIndex === effectiveIntervalCount - 1
+          const isScreenBoundary = (intervalIndex + 1) % SCREEN_STATE_INTERVAL_CADENCE === 0
+          const shouldSendScreen = isLastInterval || (intervalIndex > 0 && isScreenBoundary)
 
           setCommandLog((previous) => appendCommandHistory(previous, logIntervalDiagnostics(intervalIndex, interval, intervalType, durationType, workValue, recoverySeconds, isDistanceBased, target)))
 
@@ -534,7 +547,7 @@ export default function Pm5WorkoutSender({
             }
             targetCommand.setConfigureWorkout({ programmingMode: true })
             if (shouldSendScreen) {
-              // The PM5 requires a screen command when programming interval 11 and later ten-interval boundaries.
+              // The PM5 needs a display refresh at the 10-interval boundary and then every 10 intervals thereafter.
               targetCommand.setScreenState({
                 screenType: SCREEN_TYPE_WORKOUT,
                 value: SCREEN_VALUE_PREPARE_TO_ROW,

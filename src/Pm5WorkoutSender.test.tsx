@@ -322,7 +322,7 @@ describe('Pm5WorkoutSender', () => {
     expect(screen.getByText(/targetEncoding: pace conversion from watts \(PM_SET_TARGETPACETIME\)/i)).toBeInTheDocument()
   })
 
-  it('adds the screen command to interval 11 and the final ramp interval', async () => {
+  it('adds the screen command to the 10th interval and the final ramp interval', async () => {
     window.localStorage.removeItem('nbrctraining.estimated2kTimeSeconds')
     const rampIntervals: Interval[] = Array.from({ length: 12 }, (_, index) => ({
       ...intervals[0],
@@ -347,7 +347,71 @@ describe('Pm5WorkoutSender', () => {
       .map((result: any) => result.value)
       .filter((buffer: any) => buffer.setTargetPaceTime.mock.calls.length > 0)
     const screenTargetBuffers = targetBuffers.filter((buffer: any) => buffer.setScreenState.mock.calls.length === 1)
-    expect(screenTargetBuffers.length).toBeGreaterThanOrEqual(2)
+    expect(screenTargetBuffers.length).toBe(1)
+    const targetBufferMeta = targetBuffers.map((buffer: any) => ({
+      target: buffer.setTargetPaceTime.mock.calls[0]?.[0]?.value,
+      screenCalls: buffer.setScreenState.mock.calls.length,
+    }))
+    expect(targetBufferMeta.filter((entry) => entry.screenCalls === 1)).toHaveLength(1)
+    expect(targetBufferMeta.at(-1)?.screenCalls).toBe(1)
+  })
+
+  it('caps variable-interval workouts at 10 intervals for the PM5', async () => {
+    const longIntervals: Interval[] = Array.from({ length: 12 }, (_, index) => ({
+      ...intervals[0],
+      id: `long-${index + 1}`,
+      interval_order: index + 1,
+      work_kind: 'time',
+      work_value: 120,
+      recovery_kind: null,
+      recovery_value: null,
+      target_mode: 'two_k_pace_offset_seconds',
+      target_value: 5,
+    }))
+
+    const user = userEvent.setup()
+    render(<Pm5WorkoutSender workout={workout} intervals={longIntervals} />)
+    await user.click(screen.getByRole('button', { name: /connect pm5/i }))
+    await user.click(screen.getByRole('button', { name: /^Send workout to PM5$/i }))
+
+    const pm5Monitor = (window as typeof window & { ergometer?: any }).ergometer.PerformanceMonitorBle
+    const instance = new pm5Monitor()
+    const setupCalls = instance.newCsafeBuffer.mock.results
+      .map((result: any) => result.value)
+      .filter((buffer: any) => buffer.setWorkoutIntervalCount.mock.calls.length > 0)
+      .map((buffer: any) => buffer.setWorkoutIntervalCount.mock.calls[0][0].value)
+
+    expect(setupCalls.some((value: number) => value >= 10)).toBe(false)
+    expect(setupCalls.length).toBeLessThanOrEqual(10)
+    expect(setupCalls).toHaveLength(10)
+  })
+
+  it('sends more than 10 variable intervals when none has a pace target', async () => {
+    const targetlessIntervals: Interval[] = Array.from({ length: 12 }, (_, index) => ({
+      ...intervals[0],
+      id: `targetless-${index + 1}`,
+      interval_order: index + 1,
+      repeat_count: 1,
+      work_kind: 'time',
+      work_value: 120,
+      recovery_kind: null,
+      recovery_value: null,
+      target_mode: null,
+      target_value: null,
+    }))
+
+    const user = userEvent.setup()
+    render(<Pm5WorkoutSender workout={workout} intervals={targetlessIntervals} />)
+    await user.click(screen.getByRole('button', { name: /connect pm5/i }))
+    await user.click(screen.getByRole('button', { name: /^Send workout to PM5$/i }))
+
+    const pm5Monitor = (window as typeof window & { ergometer?: any }).ergometer.PerformanceMonitorBle
+    const instance = new pm5Monitor()
+    const createdBuffers = instance.newCsafeBuffer.mock.results.map((result: any) => result.value)
+    const setupBuffers = createdBuffers.filter((buffer: any) => buffer.setWorkoutIntervalCount.mock.calls.length > 0)
+
+    expect(setupBuffers).toHaveLength(12)
+    expect(createdBuffers.some((buffer: any) => buffer.setTargetPaceTime.mock.calls.length > 0)).toBe(false)
   })
 
   it('sends a single-stage ramp target as watts for the fixed-time protocol', async () => {
