@@ -1,21 +1,27 @@
 # Install on Apple
 
-Use Safari to add the app to your home screen for quick access.
+## Use Safari to add the app to your home screen for quick access.
 
-## 1) Open the app in Safari
 
 Open the NBRC Training site in Safari on your iPhone or iPad.
 
-## 2) Tap the Share button
+- Click the three elipisis top right of your Chrome browser  to open the browser menu
+- Pick **Install and create shortcut**
 
-Tap the Share icon at the bottom of the screen.
+![Apple step 1](../apple/Share1.jpg)
 
-## 3) Add to Home Screen
+- Tap the Share button
+
+![Apple step 2](../apple/Share2.jpg)
+
+- Add to Home Screen
+
+![Apple step 3](../apple/AddToHomeScreen3.jpg)
 
 Select **Add to Home Screen** from the menu.
 
-## 4) Confirm the shortcut
+- Tap **Add** and the app will appear on your home screen like a native app.
 
-Tap **Add** and the app will appear on your home screen like a native app.
+![Apple step 4](../apple/AddToHomeScreen4.jpg)
 
 You can now launch it directly from your home screen without opening Safari each time.

@@ -1,0 +1,35 @@
+.admin-settings {
+  width: min(40rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 4rem 0;
+  text-align: left;
+}
+
+.admin-settings-kicker {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-settings h1 {
+  margin: 0.5rem 0 1rem;
+  font-size: clamp(2.25rem, 7vw, 4rem);
+  line-height: 1;
+}
+
+.admin-settings form {
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--social-bg);
+}
+
+.admin-settings-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-h);
+  font-weight: 600;
+}

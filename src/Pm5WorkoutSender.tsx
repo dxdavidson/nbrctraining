@@ -4,6 +4,8 @@ import type { Interval, Workout } from './api'
 import { calculatePaceGuidance, isPaceGuidanceMode, isWolverineLevel, requiresStrokeRate } from './paceGuidance'
 import { secondsPer500mFromWatts } from './wolverinePace'
 import HeaderTooltip from './components/HeaderTooltip'
+import { useLocalStorageState } from './hooks/useLocalStorageState'
+import { C2_LOGBOOK_ENABLED_STORAGE_KEY } from './settings'
 import './Pm5WorkoutSender.css'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
@@ -291,6 +293,7 @@ export default function Pm5WorkoutSender({
   const [concept2UserName, setConcept2UserName] = useState<string | null>(null)
   const [isDisconnectingConcept2, setIsDisconnectingConcept2] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<string | null>(null)
+  const [connectToC2Logbook] = useLocalStorageState(C2_LOGBOOK_ENABLED_STORAGE_KEY, false)
 
   const orderedIntervals = useMemo(
     () => [...intervals].sort((a, b) => a.interval_order - b.interval_order),
@@ -321,8 +324,15 @@ export default function Pm5WorkoutSender({
   }
 
   useEffect(() => {
+    if (!connectToC2Logbook) {
+      setConcept2Connected(false)
+      setConcept2UserId(null)
+      setConcept2UserName(null)
+      setStayConnected(false)
+      return
+    }
     return loadConcept2Status()
-  }, [])
+  }, [connectToC2Logbook])
 
   const disconnectConcept2 = async () => {
     setIsDisconnectingConcept2(true)
@@ -683,50 +693,54 @@ export default function Pm5WorkoutSender({
               {sendButtonLabel}
             </button>
           </div>
-          <label className="pm5-workout-sender-stay-connected">
-            <input
-              type="checkbox"
-              checked={stayConnected}
-              onChange={(event) => setStayConnected(event.target.checked)}
-              disabled={isSending || isMonitoringWorkout || concept2Connected !== true}
-            />
-            Stay connected to PM5 and upload result to C2 Logbook
-          </label>
+          {connectToC2Logbook && (
+            <label className="pm5-workout-sender-stay-connected">
+              <input
+                type="checkbox"
+                checked={stayConnected}
+                onChange={(event) => setStayConnected(event.target.checked)}
+                disabled={isSending || isMonitoringWorkout || concept2Connected !== true}
+              />
+              Stay connected to PM5 and upload result to C2 Logbook
+            </label>
+          )}
           {status && <p className="pm5-workout-sender-status" role="status">{status}</p>}
         </section>
 
-        <section className="pm5-workout-sender-frame" aria-label="Concept2 Logbook connection">
-          <h4>Concept2 Logbook</h4>
-          <dl className="pm5-workout-sender-connection-details">
-            <div>
-              <dt>Connection</dt>
-              <dd>{concept2Connected === null ? 'Checking...' : concept2Connected ? 'Connected' : 'Not connected'}</dd>
+        {connectToC2Logbook && (
+          <section className="pm5-workout-sender-frame" aria-label="Concept2 Logbook connection">
+            <h4>Concept2 Logbook</h4>
+            <dl className="pm5-workout-sender-connection-details">
+              <div>
+                <dt>Connection</dt>
+                <dd>{concept2Connected === null ? 'Checking...' : concept2Connected ? 'Connected' : 'Not connected'}</dd>
+              </div>
+              {concept2Connected && concept2UserId && (
+                <div>
+                  <dt>Connected user ID</dt>
+                  <dd>{concept2UserId}</dd>
+                </div>
+              )}
+              {concept2Connected && concept2UserName && (
+                <div>
+                  <dt>Connected as</dt>
+                  <dd>{concept2UserName}</dd>
+                </div>
+              )}
+            </dl>
+            <div className="pm5-workout-sender-actions">
+              <a className="pm5-workout-sender-button" href={`${API_BASE_URL}/auth/concept2/login`}>
+                {concept2Connected ? 'Replace connection' : 'Connect Logbook'}
+              </a>
+              {concept2Connected && (
+                <button type="button" onClick={disconnectConcept2} disabled={isDisconnectingConcept2 || isMonitoringWorkout}>
+                  {isDisconnectingConcept2 ? 'Disconnecting...' : 'Disconnect'}
+                </button>
+              )}
             </div>
-            {concept2Connected && concept2UserId && (
-              <div>
-                <dt>Connected user ID</dt>
-                <dd>{concept2UserId}</dd>
-              </div>
-            )}
-            {concept2Connected && concept2UserName && (
-              <div>
-                <dt>Connected as</dt>
-                <dd>{concept2UserName}</dd>
-              </div>
-            )}
-          </dl>
-          <div className="pm5-workout-sender-actions">
-            <a className="pm5-workout-sender-button" href={`${API_BASE_URL}/auth/concept2/login`}>
-              {concept2Connected ? 'Replace connection' : 'Connect Logbook'}
-            </a>
-            {concept2Connected && (
-              <button type="button" onClick={disconnectConcept2} disabled={isDisconnectingConcept2 || isMonitoringWorkout}>
-                {isDisconnectingConcept2 ? 'Disconnecting...' : 'Disconnect'}
-              </button>
-            )}
-          </div>
-          {uploadStatus && <p className="pm5-workout-sender-status" role="status">{uploadStatus}</p>}
-        </section>
+            {uploadStatus && <p className="pm5-workout-sender-status" role="status">{uploadStatus}</p>}
+          </section>
+        )}
       </div>
 
       {error && (

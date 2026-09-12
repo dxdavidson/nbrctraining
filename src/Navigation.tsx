@@ -48,7 +48,7 @@ export default function Navigation({ routePath }: NavigationProps) {
         >
           Round Robin Ergos
         </a>
-        <details className="admin-navigation" open={isInstallRoute}>
+        <details className="admin-navigation" open={isAdminRoute}>
           <summary className={isInstallRoute ? 'is-active' : undefined}>Install App</summary>
           <div className="admin-navigation-menu">
             <a className={routePath === '/install' ? 'is-active' : undefined} href={appPath('install')}>
@@ -67,6 +67,9 @@ export default function Navigation({ routePath }: NavigationProps) {
           <div className="admin-navigation-menu">
             <a className={routePath === '/admin/import' ? 'is-active' : undefined} href={appPath('admin/import')}>
               Import Workouts
+            </a>
+            <a className={routePath === '/admin/settings' ? 'is-active' : undefined} href={appPath('admin/settings')}>
+              Settings
             </a>
           </div>
         </details>

@@ -352,7 +352,7 @@ describe('Pm5WorkoutSender', () => {
       target: buffer.setTargetPaceTime.mock.calls[0]?.[0]?.value,
       screenCalls: buffer.setScreenState.mock.calls.length,
     }))
-    expect(targetBufferMeta.filter((entry) => entry.screenCalls === 1)).toHaveLength(1)
+    expect(targetBufferMeta.filter((entry: { screenCalls: number }) => entry.screenCalls === 1)).toHaveLength(1)
     expect(targetBufferMeta.at(-1)?.screenCalls).toBe(1)
   })
 

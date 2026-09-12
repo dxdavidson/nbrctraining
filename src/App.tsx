@@ -1,6 +1,7 @@
 import PlanBrowser from './PlanBrowser'
 import Estimated2kTimeInput from './Estimated2kTimeInput'
 import AdminImport from './AdminImport'
+import AdminSettings from './AdminSettings'
 import PlanDescription from './PlanDescription'
 import PaceGuidanceTool from './PaceGuidanceTool'
 import AboutBox from './AboutBox'
@@ -24,6 +25,8 @@ function App() {
 
   if (routePath === '/admin/import') {
     content = <AdminImport />
+  } else if (routePath === '/admin/settings') {
+    content = <AdminSettings />
   } else if (routePath === '/ramp-test') {
     content = <RampTest />
   } else if (routePath === '/round-robin-ergos') {
