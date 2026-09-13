@@ -22,7 +22,7 @@ P2026_2027,B1,Ergo,W1S2,2026-09-28,"12' @ L4 (R18)
 P2026_2027,B1,Ergo,W1S2,2026-09-28,"12' @ L4 (R18)
 4 × 2' @ L2 (2' rest)
 10' @ L4 (R20)
-",20,"L4,L2,L4",W1S2_3,3,1,time,120,20,,,L4,
+",20,"L4,L2,L4",W1S2_3,3,1,time,600,20,,,L4,
 P2026_2027,B1,OTW,W1_OTW1,2026-09-28,"6x1km @R20 (2' rest)
 Alternate each km between half pressure and three quarters",30,"L4,L3",,,,,,,,,,
 P2026_2027,B1,Ergo,W2S1,2026-10-05,8'–7'–6'–5'–4'–3'–2'–1' @ R18–20 (1' rest),40,L4,W2S1_1,1,1,time,480,18,time,60,L4,

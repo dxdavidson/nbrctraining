@@ -139,6 +139,24 @@ describe('Pm5WorkoutSender', () => {
     expect(screen.getByRole('button', { name: /^Send workout to PM5$/i })).toBeDisabled()
   })
 
+  it('shows a synchronized estimated 2K editor above the workout summary without target pills', async () => {
+    render(<Pm5WorkoutSender workout={workout} intervals={intervals} />)
+
+    const minutesInputs = screen.getAllByLabelText('Minutes')
+    const secondsInputs = screen.getAllByLabelText('Seconds')
+    expect(minutesInputs).toHaveLength(1)
+    expect(secondsInputs).toHaveLength(1)
+    expect(minutesInputs[0]).toHaveValue(7)
+    expect(secondsInputs[0]).toHaveValue(27)
+    expect(screen.queryByText('L4 R18: 2:25 /500m')).not.toBeInTheDocument()
+    expect(screen.getByText(/WC1 · 1 interval/)).toBeInTheDocument()
+
+    const user = userEvent.setup()
+    await user.clear(minutesInputs[0])
+    await user.type(minutesInputs[0], '8')
+    expect(window.localStorage.getItem('nbrctraining.estimated2kTimeSeconds')).toBe('507')
+  })
+
   it('sends the fixed-time interval protocol without pace', async () => {
     const timeIntervals: Interval[] = [
       {

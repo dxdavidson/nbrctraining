@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
 import HeaderTooltip from './components/HeaderTooltip'
 import { calculatePaceGuidance } from './paceGuidance'
@@ -16,7 +17,8 @@ function formatPace(secondsPer500m: number): string {
 
 const L4_STROKE_RATES = [18, 20, 22, 24, 26] as const
 
-export default function Estimated2kTimeInput() {
+export default function Estimated2kTimeInput({ showPills = true }: { showPills?: boolean } = {}) {
+  const labelId = `${useId()}-estimated-2k-time-label`
   const [totalSeconds, setTotalSeconds] = useEstimated2kSeconds()
 
   const minutes = totalSeconds != null ? Math.floor(totalSeconds / 60) : null
@@ -43,7 +45,7 @@ export default function Estimated2kTimeInput() {
   return (
     <div className={`estimated-2k-time${!totalSeconds ? ' estimated-2k-time-missing' : ''}`}>
       <div className="estimated-2k-time-row">
-        <span className="estimated-2k-time-label" id="estimated-2k-time-label">
+        <span className="estimated-2k-time-label" id={labelId}>
           <HeaderTooltip label="Estimated 2K Time">
             Your estimated 2K time is the baseline used to calculate the target pace shown for each workout interval.
             <ul>
@@ -55,7 +57,7 @@ export default function Estimated2kTimeInput() {
             Update this whenever your 2K estimate changes to keep target paces accurate.
           </HeaderTooltip>
         </span>
-        <div className="estimated-2k-time-inputs" role="group" aria-labelledby="estimated-2k-time-label">
+        <div className="estimated-2k-time-inputs" role="group" aria-labelledby={labelId}>
           <input
             type="number"
             inputMode="numeric"
@@ -80,36 +82,38 @@ export default function Estimated2kTimeInput() {
           />
         </div>
       </div>
-      <div className="estimated-2k-target-paces" aria-label="Target paces">
-        <div className="estimated-2k-target-paces-row">
-          {totalSeconds != null && totalSeconds > 0 && L4_STROKE_RATES.map((spm) => {
-            const { secondsPer500m } = calculatePaceGuidance('L4', {
-              estimated2kSeconds: totalSeconds,
-              spm,
-              targetValue: null,
-            })
-            return (
-              <span key={`L4-${spm}`} className="level-badge level-badge-l4">
-                L4 R{spm}: {formatPace(secondsPer500m)} /500m
-              </span>
-            )
-          })}
+      {showPills && (
+        <div className="estimated-2k-target-paces" aria-label="Target paces">
+          <div className="estimated-2k-target-paces-row">
+            {totalSeconds != null && totalSeconds > 0 && L4_STROKE_RATES.map((spm) => {
+              const { secondsPer500m } = calculatePaceGuidance('L4', {
+                estimated2kSeconds: totalSeconds,
+                spm,
+                targetValue: null,
+              })
+              return (
+                <span key={`L4-${spm}`} className="level-badge level-badge-l4">
+                  L4 R{spm}: {formatPace(secondsPer500m)} /500m
+                </span>
+              )
+            })}
+          </div>
+          <div className="estimated-2k-target-paces-row">
+            {totalSeconds != null && totalSeconds > 0 && (['L3', 'L2'] as const).map((level) => {
+              const { secondsPer500m } = calculatePaceGuidance(level, {
+                estimated2kSeconds: totalSeconds,
+                spm: 0,
+                targetValue: null,
+              })
+              return (
+                <span key={level} className={`level-badge level-badge-${level.toLowerCase()}`}>
+                  {level} Target Pace: {formatPace(secondsPer500m)} /500m
+                </span>
+              )
+            })}
+          </div>
         </div>
-        <div className="estimated-2k-target-paces-row">
-          {totalSeconds != null && totalSeconds > 0 && (['L3', 'L2'] as const).map((level) => {
-            const { secondsPer500m } = calculatePaceGuidance(level, {
-              estimated2kSeconds: totalSeconds,
-              spm: 0,
-              targetValue: null,
-            })
-            return (
-              <span key={level} className={`level-badge level-badge-${level.toLowerCase()}`}>
-                {level} Target Pace: {formatPace(secondsPer500m)} /500m
-              </span>
-            )
-          })}
-        </div>
-      </div>
+      )}
     </div>
   )
 }

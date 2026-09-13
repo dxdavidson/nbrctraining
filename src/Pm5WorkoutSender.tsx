@@ -4,6 +4,7 @@ import type { Interval, Workout } from './api'
 import { calculatePaceGuidance, isPaceGuidanceMode, isWolverineLevel, requiresStrokeRate } from './paceGuidance'
 import { secondsPer500mFromWatts } from './wolverinePace'
 import HeaderTooltip from './components/HeaderTooltip'
+import Estimated2kTimeInput from './Estimated2kTimeInput'
 import { useLocalStorageState } from './hooks/useLocalStorageState'
 import { C2_LOGBOOK_ENABLED_STORAGE_KEY } from './settings'
 import './Pm5WorkoutSender.css'
@@ -674,6 +675,7 @@ export default function Pm5WorkoutSender({
               Sending workouts to a PM5 currently works on Android devices only. Apple devices are not supported.
             </HeaderTooltip>
           </h4>
+          <Estimated2kTimeInput showPills={false} />
           <p className="pm5-workout-sender-summary">
             {workout.workout_code} · {orderedIntervals.length} interval{orderedIntervals.length === 1 ? '' : 's'}
           </p>
