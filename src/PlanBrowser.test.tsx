@@ -213,6 +213,21 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
       '/plans/p1?from=%2F'
     )
   })
+
+  it('does not select a block when clicking a linked image in its description', async () => {
+    vi.mocked(api.fetchBlocks).mockResolvedValueOnce([{ ...block, description: '[![PM5 Display](/thumb.jpg)](/full.jpg)' }])
+    const user = userEvent.setup()
+    render(<PlanBrowser />)
+
+    const plansTable = await screen.findByRole('table', { name: 'Plans' })
+    await user.click(within(plansTable).getByText('Plan One'))
+    const blocksTable = await screen.findByRole('table', { name: 'Blocks' })
+    await user.click(within(blocksTable).getByRole('link'))
+
+    expect(api.fetchWorkouts).not.toHaveBeenCalled()
+    expect(new URLSearchParams(window.location.search).get('planId')).toBe('p1')
+    expect(new URLSearchParams(window.location.search).get('blockId')).toBeNull()
+  })
 })
 
 describe('PlanBrowser master-detail layout (wide screens)', () => {
