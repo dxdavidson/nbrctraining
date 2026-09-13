@@ -36,4 +36,20 @@ describe('Estimated2kTimeInput', () => {
     expect(screen.getByLabelText('Minutes')).toHaveValue(6)
     expect(screen.getByLabelText('Seconds')).toHaveValue(30)
   })
+
+  it('shows the L3 and L2 target paces when a 2K time is entered', async () => {
+    const user = userEvent.setup()
+    render(<Estimated2kTimeInput />)
+
+    await user.type(screen.getByLabelText('Minutes'), '8')
+    await user.type(screen.getByLabelText('Seconds'), '0')
+
+    expect(screen.getByText('L3 Target Pace: 2:09 /500m')).toBeVisible()
+    expect(screen.getByText('L2 Target Pace: 2:02 /500m')).toBeVisible()
+    expect(screen.getByText('L4 R18: 2:25 /500m')).toBeVisible()
+    expect(screen.getByText('L4 R20: 2:20 /500m')).toBeVisible()
+    expect(screen.getByText('L4 R22: 2:15 /500m')).toBeVisible()
+    expect(screen.getByText('L4 R24: 2:10 /500m')).toBeVisible()
+    expect(screen.getByText('L4 R26: 2:05 /500m')).toBeVisible()
+  })
 })

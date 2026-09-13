@@ -1,5 +1,7 @@
 .plan-browser {
+  width: 100%;
   max-width: 72rem;
+  box-sizing: border-box;
   margin: 2rem auto;
   padding: 0 1rem;
   display: flex;

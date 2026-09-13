@@ -1,6 +1,12 @@
 import TechniquePage from './TechniquePage'
 
 const content = `
+
+## Rowing Machine Technique
+2 min introduction to good technique on rowing machine
+
+http://www.youtube.com/watch?v=4zWu1yuJ0_g
+
 ## Rowing Drills
 
 ### Pick Drill
