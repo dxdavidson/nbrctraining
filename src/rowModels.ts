@@ -16,6 +16,7 @@ export interface BlockRow extends Block {
 export interface WorkoutRow extends Workout {
   weekCommencingDisplay: string
   sortOrderDisplay: string
+  durationSummary: string
 }
 
 export interface IntervalRow extends Interval {
@@ -34,6 +35,55 @@ function formatMinutesSeconds(totalSeconds: number): string {
   const minutes = Math.floor(rounded / 60)
   const seconds = rounded % 60
   return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
+
+function formatSummaryTime(totalSeconds: number | null): string {
+  if (totalSeconds == null) return '—'
+  const rounded = Math.max(0, Math.round(totalSeconds))
+  const minutes = Math.floor(rounded / 60)
+  const seconds = rounded % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+export function formatWorkoutDurationSummary(intervals: Interval[], estimated2kSeconds: number | null): string {
+  let workSeconds = 0
+  let restSeconds = 0
+  let workIsKnown = true
+
+  for (const interval of intervals) {
+    const repeatCount = Math.max(1, interval.repeat_count)
+    let intervalWorkSeconds: number | null = null
+
+    if (interval.work_kind === 'time' && interval.work_value != null) {
+      intervalWorkSeconds = interval.work_value
+    } else if (interval.work_kind === 'distance' && interval.work_value != null) {
+      let secondsPer500m: number | null = null
+      if (interval.target_mode === 'pace' && interval.target_value != null) {
+        secondsPer500m = interval.target_value
+      } else if (isPaceGuidanceMode(interval.target_mode) && estimated2kSeconds != null) {
+        if (!requiresStrokeRate(interval.target_mode) || interval.spm != null) {
+          try {
+            secondsPer500m = calculatePaceGuidance(interval.target_mode, {
+              estimated2kSeconds,
+              spm: interval.spm ?? 0,
+              targetValue: interval.target_value,
+            }).secondsPer500m
+          } catch {
+            secondsPer500m = null
+          }
+        }
+      }
+      if (secondsPer500m != null) intervalWorkSeconds = interval.work_value / 500 * secondsPer500m
+    }
+
+    if (intervalWorkSeconds == null) workIsKnown = false
+    else workSeconds += intervalWorkSeconds * repeatCount
+
+    if (interval.recovery_value != null) restSeconds += interval.recovery_value * repeatCount
+  }
+
+  const totalSeconds = workIsKnown ? workSeconds + restSeconds : null
+  return `Work: ${formatSummaryTime(workIsKnown ? workSeconds : null)} Rest: ${formatSummaryTime(restSeconds)} Total: ${formatSummaryTime(totalSeconds)}`
 }
 
 function formatWork(kind: string | null, value: number | null): string {
@@ -81,11 +131,12 @@ export function toBlockRow(block: Block): BlockRow {
   }
 }
 
-export function toWorkoutRow(workout: Workout): WorkoutRow {
+export function toWorkoutRow(workout: Workout, durationSummary = 'Work: — Rest: — Total: —'): WorkoutRow {
   return {
     ...workout,
     weekCommencingDisplay: formatDate(workout.week_commencing),
     sortOrderDisplay: workout.sort_order != null ? String(workout.sort_order) : '—',
+    durationSummary,
   }
 }
 

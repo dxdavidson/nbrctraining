@@ -228,6 +228,21 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
     expect(new URLSearchParams(window.location.search).get('planId')).toBe('p1')
     expect(new URLSearchParams(window.location.search).get('blockId')).toBeNull()
   })
+
+  it('shows repeat-aware work, rest, and total duration beneath the workout description', async () => {
+    vi.mocked(api.fetchIntervals).mockResolvedValue([
+      { ...interval, work_kind: 'time', work_value: 90, recovery_kind: 'time', recovery_value: 30, repeat_count: 2 },
+    ])
+    const user = userEvent.setup()
+    render(<PlanBrowser />)
+
+    const plansTable = await screen.findByRole('table', { name: 'Plans' })
+    await user.click(within(plansTable).getByText('Plan One'))
+    const blocksTable = await screen.findByRole('table', { name: 'Blocks' })
+    await user.click(within(blocksTable).getByText('Block One'))
+
+    expect(await screen.findByText('Work: 03:00 Rest: 01:00 Total: 04:00')).toBeInTheDocument()
+  })
 })
 
 describe('PlanBrowser master-detail layout (wide screens)', () => {

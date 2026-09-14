@@ -5,6 +5,7 @@ import { useUrlSelection } from './hooks/useUrlSelection'
 import { useEstimated2kSeconds } from './hooks/useEstimated2kSeconds'
 import formatDate from './formatDate'
 import {
+  formatWorkoutDurationSummary,
   toPlanRow,
   toBlockRow,
   toWorkoutRow,
@@ -134,7 +135,16 @@ const workoutColumns: Column<WorkoutRow>[] = [
     ),
     render: (w) => <LevelBadge level={w.level} />,
   },
-  { key: 'description', header: 'Description', render: (w) => <MarkdownDescription value={w.description} className="table-markdown-description" /> },
+  {
+    key: 'description',
+    header: 'Description',
+    render: (w) => (
+      <>
+        <MarkdownDescription value={w.description} className="table-markdown-description" />
+        <p className="workout-duration-summary">{w.durationSummary}</p>
+      </>
+    ),
+  },
 ]
 
 const intervalColumns: Column<IntervalRow>[] = [
@@ -198,6 +208,7 @@ export default function PlanBrowser() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [blocks, setBlocks] = useState<Block[]>([])
   const [workouts, setWorkouts] = useState<Workout[]>([])
+  const [workoutIntervals, setWorkoutIntervals] = useState<Record<string, Interval[]>>({})
   const [intervals, setIntervals] = useState<Interval[]>([])
 
   const [loadingPlans, setLoadingPlans] = useState(true)
@@ -238,13 +249,29 @@ export default function PlanBrowser() {
   useEffect(() => {
     if (!blockId) {
       setWorkouts([])
+      setWorkoutIntervals({})
       return
     }
+    let active = true
     setLoadingWorkouts(true)
     fetchWorkouts(blockId)
-      .then(setWorkouts)
+      .then(async (loadedWorkouts) => {
+        if (!active) return
+        setWorkouts(loadedWorkouts)
+        const intervalEntries = await Promise.all(
+          loadedWorkouts
+            .filter(canExpandWorkout)
+            .map(async (workout) => [workout.id, await fetchIntervals(workout.id)] as const),
+        )
+        if (active) setWorkoutIntervals(Object.fromEntries(intervalEntries))
+      })
       .catch((err) => setError(err.message))
-      .finally(() => setLoadingWorkouts(false))
+      .finally(() => {
+        if (active) setLoadingWorkouts(false)
+      })
+    return () => {
+      active = false
+    }
   }, [blockId])
 
   useEffect(() => {
@@ -303,7 +330,12 @@ export default function PlanBrowser() {
       <DataTable
         caption="Workouts"
         columns={workoutColumns}
-        rows={visibleWorkouts.map(toWorkoutRow)}
+        rows={visibleWorkouts.map((workout) => toWorkoutRow(
+          workout,
+          workoutIntervals[workout.id]
+            ? formatWorkoutDurationSummary(workoutIntervals[workout.id], estimated2kSeconds)
+            : undefined,
+        ))}
         getRowId={(w) => w.id}
         selectedId={workoutId}
         onSelectRow={(w) => {

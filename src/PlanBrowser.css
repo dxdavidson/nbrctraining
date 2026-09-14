@@ -23,6 +23,14 @@
   color: var(--accent);
 }
 
+.workout-duration-summary {
+  margin: 0.4rem 0 0;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .level-badge {
   display: inline-block;
   padding: 0.15rem 0.55rem;
