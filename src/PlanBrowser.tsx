@@ -365,7 +365,6 @@ export default function PlanBrowser() {
 
   return (
     <section className="plan-browser" aria-label="Training plan browser">
-      <h2>Plan Browser</h2>
       {error && (
         <p className="plan-browser-error" role="alert">
           {error}
