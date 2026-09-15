@@ -153,7 +153,7 @@ const intervalColumns: Column<IntervalRow>[] = [
   {
     key: 'spm',
     header: 'SPM',
-    render: (i) => (i.target_mode === 'L4' ? <strong className="pace-guidance-highlight">{i.spm ?? '—'}</strong> : (i.spm ?? '—')),
+    render: (i) => (i.target_mode === 'L4' || i.target_mode === 'L1' || i.target_mode === null ? <strong className="pace-guidance-highlight">{i.spm ?? '—'}</strong> : (i.spm ?? '—')),
     sortValue: (i) => i.spm,
     width: '5rem',
   },
@@ -161,7 +161,7 @@ const intervalColumns: Column<IntervalRow>[] = [
     key: 'target',
     header: 'Target Pace',
     render: (i) =>
-      i.target_mode === 'L2' || i.target_mode === 'L3' ? (
+      i.target_mode !== 'L4' && i.target_mode !== 'L1' && i.target_mode !== null ? (
         <strong className="pace-guidance-highlight">{i.targetDisplay}</strong>
       ) : (
         i.targetDisplay
