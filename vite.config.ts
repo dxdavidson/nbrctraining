@@ -64,6 +64,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Let direct navigations to static images hit the network instead of falling back to the app shell.
+        navigateFallbackDenylist: [/\.(?:png|jpe?g|gif|svg|webp|ico|avif)$/i],
         // Cache read-only plan data so a previously viewed workout is available offline.
         runtimeCaching: [
           {

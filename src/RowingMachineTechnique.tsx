@@ -14,11 +14,23 @@ Teaches the correct sequence of the recovery phase hands away->body pivot->bend 
 
 https://youtu.be/-iRbfsCPXVE?si=58FGlT-Xy3ziqaXB
 
+#### From Finish Position
+- Arms Only x10
+- Arms and Body x10
+- Half Slide x 10
+- Full Slide x10
+
 ### Reverse Pick Drill
 
 Teaches the correct sequence of the drive phase, legs->body->arms. This is critical on the rowing machine, but also on the water where we want to keep our back in the same strong position shown in the video, with our head in line with the spine (not throwing the head back to heave the oar)
 
 https://youtu.be/MFbD8JuD9No?si=PiRmvxZ1hNqezLuF
+
+#### From Catch Position
+- Legs Only  x10
+- Legs and Body x 10
+- Legs Body and Arms (full stroke) x10
+
 `
 
 export default function RowingMachineTechnique() {
