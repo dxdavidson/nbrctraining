@@ -1,11 +1,21 @@
 import { useEffect, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type Components } from 'react-markdown'
 import rehypeSanitize from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
+import { resolveAssetUrl } from './resolveAssetUrl'
 import './InstallGuide.css'
 
 interface InstallGuideProps {
   page: 'index' | 'android' | 'apple'
+}
+
+const components: Components = {
+  a({ href, children }) {
+    return <a href={resolveAssetUrl(href)}>{children}</a>
+  },
+  img({ src, alt }) {
+    return <img src={resolveAssetUrl(src)} alt={alt ?? ''} loading="lazy" />
+  },
 }
 
 export default function InstallGuide({ page }: InstallGuideProps) {
@@ -46,7 +56,7 @@ export default function InstallGuide({ page }: InstallGuideProps) {
       {error && <p className="install-guide-error" role="alert">{error}</p>}
       {!loading && !error && (
         <article className="install-guide-content">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]} components={components}>
             {markdown}
           </ReactMarkdown>
         </article>

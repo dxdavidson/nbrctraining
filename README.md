@@ -182,6 +182,27 @@ npm run lint
 
 The test suite uses Vitest with a `jsdom` environment and Testing Library. Tests are located alongside the relevant source files in `src/`.
 
+## Concept2 rankings scraper
+
+`scripts/scrapeRankings.mjs` fetches the public Concept2 Logbook rankings pages (`https://log.concept2.com/rankings/<year>/rower/<distance>?rower=rower&gender=<M|F>&status=race`) across a range of years and aggregates every row into a single CSV file. It walks all paginated result pages for each year and gender, retries failed page fetches, and streams rows to disk as it goes.
+
+Run it with Node from the repository root:
+
+```powershell
+node scripts/scrapeRankings.mjs --start 2002 --end 2027
+```
+
+Options:
+
+- `--start <year>` (required): first year to fetch, inclusive.
+- `--end <year>` (required): last year to fetch, inclusive.
+- `--out <path>`: output CSV path (default `data/imports/rankings.csv`).
+- `--delay <ms>`: delay between page/year requests (default `400`).
+- `--distance <meters>`: rankings distance to query (default `2000`).
+- `--gender both|M|F`: gender to query (default `both`, which fetches each year once per gender). The rankings pages don't expose gender as a data column, so this value is written into the row instead of parsed from the page.
+
+The output CSV includes one row per ranked result, with columns `year, gender, rank, name, age, location, country, affiliation, distance, time, verified, status`.
+
 ## PM5 time-interval protocol
 
 For a standalone time-based workout such as 5:00 (300 seconds), the app follows ErgometerJS's fixed-time interval example. When a workout contains multiple intervals, the app uses ErgometerJS's variable-interval sequence instead, including time intervals as `intervalType=time` entries.
