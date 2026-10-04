@@ -1,0 +1,42 @@
+.reload-prompt {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--text);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  font-weight: 600;
+}
+
+.reload-prompt-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.reload-prompt button {
+  font: inherit;
+  min-height: 44px;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.reload-prompt-update {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+}
+
+.reload-prompt-dismiss {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}

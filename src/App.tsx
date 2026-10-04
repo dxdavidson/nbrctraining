@@ -11,6 +11,7 @@ import RoundRobinErgos from './RoundRobinErgos'
 import RowingMachineTechnique from './RowingMachineTechnique'
 import OnTheWaterTechnique from './OnTheWaterTechnique'
 import InstallGuide from './InstallGuide'
+import ReloadPrompt from './components/ReloadPrompt'
 
 function App() {
   // Strip the deploy base path (e.g. "/training/") so route matching works when hosted under a sub-path.
@@ -60,6 +61,7 @@ function App() {
     <>
       <Navigation routePath={routePath} />
       {content}
+      <ReloadPrompt />
     </>
   )
 }
