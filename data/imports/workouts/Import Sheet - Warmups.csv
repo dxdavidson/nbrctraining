@@ -1,13 +1,139 @@
 plan_code,block_code,wk_type,workout_code,week_commencing,description,sort_order,level,interval_code,interval_order,repeat_count,work_kind,work_value,spm,recovery_kind,recovery_value,target_mode,target_value
-Others,Warmups,Ergo,8minWarmup,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,8minWarmup_1,1,1,time,120,20,,,L4,
-Others,Warmups,Ergo,8minWarmup,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,8minWarmup_2,2,1,time,30,,,,two_k_pace_multiplier,9
-Others,Warmups,Ergo,8minWarmup,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,8minWarmup_3,3,1,time,60,20,,,L4,
-Others,Warmups,Ergo,8minWarmup,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,8minWarmup_4,4,1,time,30,,,,two_k_pace_multiplier,6
-Others,Warmups,Ergo,8minWarmup,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,8minWarmup_5,5,1,time,60,20,,,L4,
-Others,Warmups,Ergo,8minWarmup,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,8minWarmup_6,6,1,time,30,,,,two_k_pace_multiplier,3
-Others,Warmups,Ergo,8minWarmup,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,8minWarmup_7,7,1,time,60,20,,,L4,
-Others,Warmups,Ergo,8minWarmup,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,8minWarmup_8,8,1,time,30,,,,two_k_pace_multiplier,0
-Others,Warmups,Ergo,8minWarmup,2026-09-28,Mostly light pressure @20rpm interspersed with 30second intervals of increasing intensity,10,Various,8minWarmup_9,9,1,time,60,20,,,L4,
+Others,Warmups,Ergo,8minWarmup,2026-09-28,"If you can't send the workout to the PM5, it is roughly :-
+
+| Duration | SPM | Pace |
+| -------- | --- | ---- |
+| 2mins    | **20**  | 2K+20 |
+| 30s      | 22 | **2K+15** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 24 | **2K+10** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 26 | **2K+5**  |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 28 | **2K**    |
+| 1min     | **20**  | 2K+20 |
+
+Stick to whatever is bold (SPM or Pace)",10,Various,8minWarmup_1,1,1,time,120,20,,,L4,
+Others,Warmups,Ergo,8minWarmup,2026-09-28,"If you can't send the workout to the PM5, it is roughly :-
+
+| Duration | SPM | Pace |
+| -------- | --- | ---- |
+| 2mins    | **20**  | 2K+20 |
+| 30s      | 22 | **2K+15** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 24 | **2K+10** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 26 | **2K+5**  |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 28 | **2K**    |
+| 1min     | **20**  | 2K+20 |
+
+Stick to whatever is bold (SPM or Pace)",10,Various,8minWarmup_2,2,1,time,30,,,,two_k_pace_multiplier,9
+Others,Warmups,Ergo,8minWarmup,2026-09-28,"If you can't send the workout to the PM5, it is roughly :-
+
+| Duration | SPM | Pace |
+| -------- | --- | ---- |
+| 2mins    | **20**  | 2K+20 |
+| 30s      | 22 | **2K+15** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 24 | **2K+10** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 26 | **2K+5**  |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 28 | **2K**    |
+| 1min     | **20**  | 2K+20 |
+
+Stick to whatever is bold (SPM or Pace)",10,Various,8minWarmup_3,3,1,time,60,20,,,L4,
+Others,Warmups,Ergo,8minWarmup,2026-09-28,"If you can't send the workout to the PM5, it is roughly :-
+
+| Duration | SPM | Pace |
+| -------- | --- | ---- |
+| 2mins    | **20**  | 2K+20 |
+| 30s      | 22 | **2K+15** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 24 | **2K+10** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 26 | **2K+5**  |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 28 | **2K**    |
+| 1min     | **20**  | 2K+20 |
+
+Stick to whatever is bold (SPM or Pace)",10,Various,8minWarmup_4,4,1,time,30,,,,two_k_pace_multiplier,6
+Others,Warmups,Ergo,8minWarmup,2026-09-28,"If you can't send the workout to the PM5, it is roughly :-
+
+| Duration | SPM | Pace |
+| -------- | --- | ---- |
+| 2mins    | **20**  | 2K+20 |
+| 30s      | 22 | **2K+15** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 24 | **2K+10** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 26 | **2K+5**  |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 28 | **2K**    |
+| 1min     | **20**  | 2K+20 |
+
+Stick to whatever is bold (SPM or Pace)",10,Various,8minWarmup_5,5,1,time,60,20,,,L4,
+Others,Warmups,Ergo,8minWarmup,2026-09-28,"If you can't send the workout to the PM5, it is roughly :-
+
+| Duration | SPM | Pace |
+| -------- | --- | ---- |
+| 2mins    | **20**  | 2K+20 |
+| 30s      | 22 | **2K+15** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 24 | **2K+10** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 26 | **2K+5**  |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 28 | **2K**    |
+| 1min     | **20**  | 2K+20 |
+
+Stick to whatever is bold (SPM or Pace)",10,Various,8minWarmup_6,6,1,time,30,,,,two_k_pace_multiplier,3
+Others,Warmups,Ergo,8minWarmup,2026-09-28,"If you can't send the workout to the PM5, it is roughly :-
+
+| Duration | SPM | Pace |
+| -------- | --- | ---- |
+| 2mins    | **20**  | 2K+20 |
+| 30s      | 22 | **2K+15** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 24 | **2K+10** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 26 | **2K+5**  |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 28 | **2K**    |
+| 1min     | **20**  | 2K+20 |
+
+Stick to whatever is bold (SPM or Pace)",10,Various,8minWarmup_7,7,1,time,60,20,,,L4,
+Others,Warmups,Ergo,8minWarmup,2026-09-28,"If you can't send the workout to the PM5, it is roughly :-
+
+| Duration | SPM | Pace |
+| -------- | --- | ---- |
+| 2mins    | **20**  | 2K+20 |
+| 30s      | 22 | **2K+15** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 24 | **2K+10** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 26 | **2K+5**  |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 28 | **2K**    |
+| 1min     | **20**  | 2K+20 |
+
+Stick to whatever is bold (SPM or Pace)",10,Various,8minWarmup_8,8,1,time,30,,,,two_k_pace_multiplier,0
+Others,Warmups,Ergo,8minWarmup,2026-09-28,"If you can't send the workout to the PM5, it is roughly :-
+
+| Duration | SPM | Pace |
+| -------- | --- | ---- |
+| 2mins    | **20**  | 2K+20 |
+| 30s      | 22 | **2K+15** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 24 | **2K+10** |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 26 | **2K+5**  |
+| 1min     | **20**  | 2K+20 |
+| 30s      | 28 | **2K**    |
+| 1min     | **20**  | 2K+20 |
+
+Stick to whatever is bold (SPM or Pace)",10,Various,8minWarmup_9,9,1,time,60,20,,,L4,
 Others,Warmups,Ergo,TestWorkout,2026-09-28,"4' @ L4 (R18)
 2x2' @L2 (2' rest)
 4' @ L4 (R20)",20,"L4,L2,L4",TestWorkout_1,1,1,time,240,18,,,L4,

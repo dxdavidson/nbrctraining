@@ -107,6 +107,32 @@ describe('PlanBrowser drill-down (narrow layout)', () => {
     expect(new URLSearchParams(window.location.search).get('workoutId')).toBe('w1')
   })
 
+  it.each([
+    ['L2', 'pace'],
+    ['L3', 'pace'],
+    ['L1', 'spm'],
+    ['L4', 'spm'],
+    ['two_k_pace_multiplier', 'spm'],
+    ['two_k_pace_offset_seconds', 'spm'],
+    [null, 'spm'],
+  ] as const)('bolds the %s focus column (%s) in the intervals table', async (targetMode, focus) => {
+    vi.mocked(api.fetchIntervals).mockResolvedValue([{ ...interval, spm: 20, target_mode: targetMode }])
+    const user = userEvent.setup()
+    render(<PlanBrowser />)
+
+    const plansTable = await screen.findByRole('table', { name: 'Plans' })
+    await user.click(within(plansTable).getByText('Plan One'))
+    const blocksTable = await screen.findByRole('table', { name: 'Blocks' })
+    await user.click(within(blocksTable).getByText('Block One'))
+    const workoutsTable = await screen.findByRole('table', { name: 'Workouts' })
+    await user.click(within(workoutsTable).getByText('WC1'))
+    const intervalsTable = await screen.findByRole('table', { name: 'Intervals' })
+
+    const spmCell = within(intervalsTable).getByText('20').closest('td')!
+    const spmBold = spmCell.querySelector('strong') !== null
+    expect(spmBold).toBe(focus === 'spm')
+  })
+
   it('keeps parent tables visible while drilling down', async () => {
     const user = userEvent.setup()
     render(<PlanBrowser />)

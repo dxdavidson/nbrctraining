@@ -211,18 +211,34 @@
   white-space: normal;
 }
 
-.table-markdown-description p {
-  margin: 0 0 0.5rem;
+.table-markdown-description {
+  white-space: normal;
 }
 
-.table-markdown-description p:last-child {
-  margin-bottom: 0;
+.table-markdown-description p {
+  margin: 0;
 }
 
 .table-markdown-description ul,
 .table-markdown-description ol {
-  margin: 0.25rem 0;
+  margin: 0;
   padding-left: 1.25rem;
+}
+
+/* Markdown tables render inside a data-table cell, so cells inherit the outer
+   table's nth-child widths, nowrap, and padding. Reclaim control here. */
+.data-table .table-markdown-description table {
+  width: auto;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table .table-markdown-description th,
+.data-table .table-markdown-description td {
+  width: auto;
+  padding: 0.15rem 1rem 0.15rem 0;
+  white-space: normal;
+  text-align: left;
 }
 
 .data-table-intervals {

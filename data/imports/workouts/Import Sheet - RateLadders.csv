@@ -1,0 +1,20 @@
+plan_code,block_code,wk_type,workout_code,week_commencing,description,sort_order,level,interval_code,interval_order,repeat_count,work_kind,work_value,spm,recovery_kind,recovery_value,target_mode,target_value
+Others,RateLadders,Ergo,Pyramid1,2026-09-28,Rate pyramid 20->22->24->26->28->26->24>22->20,10,Various,Pyramid1_1,1,1,time,120,20,,,two_k_pace_offset_seconds,20
+Others,RateLadders,Ergo,Pyramid1,2026-09-28,Rate pyramid 20->22->24->26->28->26->24>22->20,10,Various,Pyramid1_2,2,1,time,120,22,,,two_k_pace_offset_seconds,15
+Others,RateLadders,Ergo,Pyramid1,2026-09-28,Rate pyramid 20->22->24->26->28->26->24>22->20,10,Various,Pyramid1_3,3,1,time,120,24,,,two_k_pace_offset_seconds,10
+Others,RateLadders,Ergo,Pyramid1,2026-09-28,Rate pyramid 20->22->24->26->28->26->24>22->20,10,Various,Pyramid1_4,4,1,time,120,26,,,two_k_pace_offset_seconds,5
+Others,RateLadders,Ergo,Pyramid1,2026-09-28,Rate pyramid 20->22->24->26->28->26->24>22->20,10,Various,Pyramid1_5,5,1,time,120,28,,,two_k_pace_offset_seconds,0
+Others,RateLadders,Ergo,Pyramid1,2026-09-28,Rate pyramid 20->22->24->26->28->26->24>22->20,10,Various,Pyramid1_6,6,1,time,120,26,,,two_k_pace_offset_seconds,5
+Others,RateLadders,Ergo,Pyramid1,2026-09-28,Rate pyramid 20->22->24->26->28->26->24>22->20,10,Various,Pyramid1_7,7,1,time,120,24,,,two_k_pace_offset_seconds,10
+Others,RateLadders,Ergo,Pyramid1,2026-09-28,Rate pyramid 20->22->24->26->28->26->24>22->20,10,Various,Pyramid1_8,8,1,time,120,22,,,two_k_pace_offset_seconds,15
+Others,RateLadders,Ergo,Pyramid1,2026-09-28,Rate pyramid 20->22->24->26->28->26->24>22->20,10,Various,Pyramid1_9,9,1,time,120,20,,,two_k_pace_offset_seconds,20
+Others,RateLadders,Ergo,Rate1,2026-09-28,Rate Ladder 20->22->24->26->28->20->22>24->26->28,20,Various,Rate1_1,1,1,time,120,20,,,two_k_pace_offset_seconds,20
+Others,RateLadders,Ergo,Rate1,2026-09-28,Rate Ladder 20->22->24->26->28->20->22>24->26->28,20,Various,Rate1_2,2,1,time,120,22,,,two_k_pace_offset_seconds,15
+Others,RateLadders,Ergo,Rate1,2026-09-28,Rate Ladder 20->22->24->26->28->20->22>24->26->28,20,Various,Rate1_3,3,1,time,120,24,,,two_k_pace_offset_seconds,10
+Others,RateLadders,Ergo,Rate1,2026-09-28,Rate Ladder 20->22->24->26->28->20->22>24->26->28,20,Various,Rate1_4,4,1,time,120,26,,,two_k_pace_offset_seconds,5
+Others,RateLadders,Ergo,Rate1,2026-09-28,Rate Ladder 20->22->24->26->28->20->22>24->26->28,20,Various,Rate1_5,5,1,time,120,28,,,two_k_pace_offset_seconds,0
+Others,RateLadders,Ergo,Rate1,2026-09-28,Rate Ladder 20->22->24->26->28->20->22>24->26->28,20,Various,Rate1_6,6,1,time,120,20,,,two_k_pace_offset_seconds,20
+Others,RateLadders,Ergo,Rate1,2026-09-28,Rate Ladder 20->22->24->26->28->20->22>24->26->28,20,Various,Rate1_7,7,1,time,120,22,,,two_k_pace_offset_seconds,15
+Others,RateLadders,Ergo,Rate1,2026-09-28,Rate Ladder 20->22->24->26->28->20->22>24->26->28,20,Various,Rate1_8,8,1,time,120,24,,,two_k_pace_offset_seconds,10
+Others,RateLadders,Ergo,Rate1,2026-09-28,Rate Ladder 20->22->24->26->28->20->22>24->26->28,20,Various,Rate1_9,9,1,time,120,26,,,two_k_pace_offset_seconds,5
+Others,RateLadders,Ergo,Rate1,2026-09-28,Rate Ladder 20->22->24->26->28->20->22>24->26->28,20,Various,Rate1_10,10,1,time,120,28,,,two_k_pace_offset_seconds,0

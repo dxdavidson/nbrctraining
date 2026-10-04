@@ -44,6 +44,10 @@
   margin: 1rem 0;
 }
 
+.plan-description li > p {
+  margin: 0;
+}
+
 .plan-description blockquote {
   margin-left: 0;
   padding-left: 1rem;

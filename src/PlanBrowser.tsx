@@ -147,13 +147,19 @@ const workoutColumns: Column<WorkoutRow>[] = [
   },
 ]
 
+// Pace focus is limited to the Wolverine L2/L3 percentage-of-2K modes; everything else
+// (L1/L4 rate-restricted, offset/multiplier, or no target) is stroke-rate led.
+function isSpmFocus(targetMode: string | null): boolean {
+  return targetMode !== 'L2' && targetMode !== 'L3'
+}
+
 const intervalColumns: Column<IntervalRow>[] = [
   { key: 'interval_order', header: '#', render: (i) => i.interval_order, sortValue: (i) => i.interval_order },
   { key: 'work', header: 'Work', render: (i) => i.workDisplay },
   {
     key: 'spm',
     header: 'SPM',
-    render: (i) => (i.target_mode === 'L4' || i.target_mode === 'L1' || i.target_mode === null ? <strong className="pace-guidance-highlight">{i.spm ?? '—'}</strong> : (i.spm ?? '—')),
+    render: (i) => (isSpmFocus(i.target_mode) ? <strong className="pace-guidance-highlight">{i.spm ?? '—'}</strong> : (i.spm ?? '—')),
     sortValue: (i) => i.spm,
     width: '5rem',
   },
@@ -161,7 +167,7 @@ const intervalColumns: Column<IntervalRow>[] = [
     key: 'target',
     header: 'Target Pace',
     render: (i) =>
-      i.target_mode !== 'L4' && i.target_mode !== 'L1' && i.target_mode !== null ? (
+      !isSpmFocus(i.target_mode) ? (
         <strong className="pace-guidance-highlight">{i.targetDisplay}</strong>
       ) : (
         i.targetDisplay
