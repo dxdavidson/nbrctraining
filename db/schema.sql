@@ -60,6 +60,7 @@ CREATE TABLE concept2_tokens (
     device_id         UUID NOT NULL,
     concept2_user_id  TEXT NOT NULL,
     concept2_user_name TEXT,
+    weight_class      TEXT,
     access_token      TEXT NOT NULL,
     refresh_token     TEXT NOT NULL,
     expires_at        TIMESTAMPTZ NOT NULL,

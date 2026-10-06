@@ -2,12 +2,24 @@ import { randomUUID } from 'node:crypto'
 import express from 'express'
 import { pool } from './db.js'
 
-const CONCEPT2_AUTHORIZE_URL = 'https://log.concept2.com/oauth/authorize'
-const CONCEPT2_TOKEN_URL = 'https://log.concept2.com/oauth/access_token'
-const CONCEPT2_API_BASE = 'https://log.concept2.com/api'
+// Set CONCEPT2_BASE_URL=https://log-dev.concept2.com to use the Concept2 dev logbook.
+// db.js is imported first, so the root .env is already loaded when this runs.
+const CONCEPT2_BASE_URL = (process.env.CONCEPT2_BASE_URL || 'https://log.concept2.com').replace(/\/+$/, '')
+const CONCEPT2_AUTHORIZE_URL = `${CONCEPT2_BASE_URL}/oauth/authorize`
+const CONCEPT2_TOKEN_URL = `${CONCEPT2_BASE_URL}/oauth/access_token`
+export const CONCEPT2_API_BASE = `${CONCEPT2_BASE_URL}/api`
 const CONCEPT2_SCOPES = 'user:read,results:write'
 const DEVICE_COOKIE_NAME = 'c2_device_id'
 const DEVICE_COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 365
+
+function getDeviceCookieOptions() {
+  const usesHttpsCallback = process.env.CONCEPT2_REDIRECT_URI?.startsWith('https://') ?? false
+  return {
+    httpOnly: true,
+    secure: usesHttpsCallback,
+    sameSite: usesHttpsCallback ? 'none' : 'lax',
+  }
+}
 
 function requireConcept2Config(res) {
   const { CONCEPT2_CLIENT_ID, CONCEPT2_CLIENT_SECRET, CONCEPT2_REDIRECT_URI, CONCEPT2_FRONTEND_URL } = process.env
@@ -19,21 +31,14 @@ function requireConcept2Config(res) {
 }
 
 function setDeviceCookie(res, deviceId) {
-  // sameSite: 'none' + secure is required since the frontend and API are on different origins
   res.cookie(DEVICE_COOKIE_NAME, deviceId, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    ...getDeviceCookieOptions(),
     maxAge: DEVICE_COOKIE_MAX_AGE_MS,
   })
 }
 
 function clearDeviceCookie(res) {
-  res.clearCookie(DEVICE_COOKIE_NAME, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-  })
+  res.clearCookie(DEVICE_COOKIE_NAME, getDeviceCookieOptions())
 }
 
 async function exchangeCodeForTokens(config, code) {
@@ -65,6 +70,14 @@ function getConcept2UserDisplayName(user) {
   return values.find((value) => typeof value === 'string' && value.trim())?.trim() ?? null
 }
 
+// Maps the profile's weight class to Concept2's "H"/"L" result values; null when absent or unrecognised.
+function getConcept2WeightClass(user) {
+  const value = String(user?.weight_class ?? user?.weightClass ?? '').trim().toLowerCase()
+  if (value === 'l' || value.startsWith('light')) return 'L'
+  if (value === 'h' || value.startsWith('heavy')) return 'H'
+  return null
+}
+
 async function fetchConcept2User(accessToken) {
   const response = await fetch(`${CONCEPT2_API_BASE}/users/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -77,21 +90,23 @@ async function fetchConcept2User(accessToken) {
   return {
     userId: String(user?.id ?? ''),
     userName: getConcept2UserDisplayName(user),
+    weightClass: getConcept2WeightClass(user),
   }
 }
 
 async function upsertTokens(deviceId, concept2User, tokens) {
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)
   await pool.query(
-    `INSERT INTO concept2_tokens (device_id, concept2_user_id, concept2_user_name, access_token, refresh_token, expires_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, now())
+    `INSERT INTO concept2_tokens (device_id, concept2_user_id, concept2_user_name, weight_class, access_token, refresh_token, expires_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, now())
      ON CONFLICT (device_id) DO UPDATE
      SET concept2_user_id = EXCLUDED.concept2_user_id, concept2_user_name = EXCLUDED.concept2_user_name,
+         weight_class = EXCLUDED.weight_class,
          access_token = EXCLUDED.access_token,
          refresh_token = EXCLUDED.refresh_token,
          expires_at = EXCLUDED.expires_at,
          updated_at = now()`,
-    [deviceId, concept2User.userId, concept2User.userName, tokens.access_token, tokens.refresh_token, expiresAt]
+    [deviceId, concept2User.userId, concept2User.userName, concept2User.weightClass, tokens.access_token, tokens.refresh_token, expiresAt]
   )
 }
 
@@ -186,15 +201,15 @@ export function registerConcept2Routes(app) {
       return res.status(401).json({ error: 'No Concept2 account is linked to this device.' })
     }
 
-    const payload = buildResultPayload(req.body)
-    if (!payload) {
-      return res.status(400).json({ error: 'distance and time are required and must be positive numbers.' })
-    }
-
     try {
       const connection = await getConcept2Connection(deviceId)
       if (!connection) {
         return res.status(401).json({ error: 'No Concept2 account is linked to this device.' })
+      }
+
+      const payload = buildResultPayload({ ...req.body, weightClass: connection.weightClass })
+      if (!payload) {
+        return res.status(400).json({ error: 'distance and time are required and must be positive numbers.' })
       }
 
       const response = await fetch(`${CONCEPT2_API_BASE}/users/${connection.concept2UserId}/results`, {
@@ -223,18 +238,36 @@ export function registerConcept2Routes(app) {
 // Maps a PM5 workout-summary payload (see ergometer.js workoutSummaryDataEvent) to a Concept2
 // result. Field names follow Concept2's published Result API shape; verify against the actual
 // response the first time this runs, since it can only be confirmed against the live API.
-function buildResultPayload(summary) {
+// Optional summary.intervals: [{ distance (m), elapsedTime (ms), strokeRate?, restTime (ms)? }]
+export function buildResultPayload(summary) {
   const distance = Number(summary?.distance)
   const timeSeconds = Number(summary?.elapsedTime) / 1000
   if (!Number.isFinite(distance) || distance <= 0 || !Number.isFinite(timeSeconds) || timeSeconds <= 0) {
     return null
   }
 
+  const startedAt = new Date(summary?.startedAt ?? Date.now())
   const payload = {
     type: 'rower',
-    date: summary?.startedAt ?? new Date().toISOString(),
+    // Required by Concept2: "H" (heavyweight) or "L" (lightweight).
+    weight_class: summary?.weightClass === 'L' ? 'L' : 'H',
+    // Concept2 expects "YYYY-MM-DD HH:MM:SS" and times in tenths of a second.
+    date: startedAt.toISOString().slice(0, 19).replace('T', ' '),
     distance: Math.round(distance),
-    time: Math.round(timeSeconds * 10) / 10,
+    time: Math.round(timeSeconds * 10),
+  }
+
+  if (Array.isArray(summary?.intervals) && summary.intervals.length > 0) {
+    payload.workout_type = 'VariableInterval'
+    payload.workout = {
+      intervals: summary.intervals.map((interval) => ({
+        type: interval.type ?? 'time',
+        distance: Math.round(Number(interval.distance)),
+        time: Math.round(Number(interval.elapsedTime) / 100),
+        ...(Number(interval.strokeRate) > 0 ? { stroke_rate: Math.round(Number(interval.strokeRate)) } : {}),
+        ...(Number(interval.restTime) > 0 ? { rest_time: Math.round(Number(interval.restTime) / 100) } : {}),
+      })),
+    }
   }
 
   if (Number.isFinite(Number(summary?.averageStrokeRate))) {
@@ -254,14 +287,14 @@ function buildResultPayload(summary) {
   return payload
 }
 
-async function getConcept2Connection(deviceId) {
-  const { rows } = await pool.query('SELECT concept2_user_id FROM concept2_tokens WHERE device_id = $1', [deviceId])
+export async function getConcept2Connection(deviceId) {
+  const { rows } = await pool.query('SELECT concept2_user_id, weight_class FROM concept2_tokens WHERE device_id = $1', [deviceId])
   if (rows.length === 0) return null
 
   const accessToken = await getValidConcept2AccessToken(deviceId)
   if (!accessToken) return null
 
-  return { accessToken, concept2UserId: rows[0].concept2_user_id }
+  return { accessToken, concept2UserId: rows[0].concept2_user_id, weightClass: rows[0].weight_class }
 }
 
 // Returns a usable access token for the device, refreshing it first if it has expired.

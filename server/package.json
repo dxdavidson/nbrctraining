@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "submit-workout": "node scripts/submitWorkout.js"
   },
   "engines": {
     "node": ">=20"

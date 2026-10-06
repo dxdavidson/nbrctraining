@@ -74,6 +74,57 @@ VITE_API_BASE_URL=http://localhost:4000
 
 The API port can be changed with `PORT`. For a deployed frontend, set `CLIENT_ORIGIN` on the API to the allowed frontend origin or comma-separated origins.
 
+### Test Concept2 Logbook locally
+
+Manage the Concept2 OAuth application keys and redirect URLs at [Concept2 Developer API Keys](https://log.concept2.com/developers/keys). Sign in as `teamdavidson`, the account that created this application's keys.
+
+Create a Concept2 OAuth application for local development, or add this exact callback URL to the existing application's allowed redirect URLs:
+
+```text
+http://localhost:4000/auth/concept2/callback
+```
+
+The **allowed redirect URLs** (sometimes called redirect URIs) are configured in the OAuth application's settings on the Concept2 Developer site. They are the destinations Concept2 is permitted to send a user back to after sign-in. In this app, the Express API on port `4000` handles that return: it receives the authorization code at `/auth/concept2/callback`, exchanges it for tokens, then redirects the browser back to the frontend.
+
+Add the URL above as an additional allowed URL; do not replace the production callback if the same OAuth application is used in production. The URL must match exactly, including `http` (not `https`), `localhost`, port `4000`, and the callback path. Concept2 will reject the sign-in redirect if the URL in the app's request is not on the application's allowlist.
+
+Add these values to the root `.env`. Keep the client secret out of version control:
+
+```dotenv
+CONCEPT2_CLIENT_ID=<the local OAuth application client ID>
+CONCEPT2_CLIENT_SECRET=<the local OAuth application client secret>
+CONCEPT2_REDIRECT_URI=http://localhost:4000/auth/concept2/callback
+CONCEPT2_FRONTEND_URL=http://localhost:5173
+# Optional. Defaults to https://log.concept2.com; use the dev logbook until the app is approved:
+CONCEPT2_BASE_URL=https://log-dev.concept2.com
+```
+
+`CONCEPT2_BASE_URL` selects which Concept2 logbook the API uses for OAuth, user lookup and result submission. The client ID and secret must belong to an application registered on that same site. Leave it unset in production.
+
+Start both services, open `http://localhost:5173`, and select **Connect Logbook**. The API sets an HTTP localhost cookie for this flow; deployed HTTPS callbacks continue using secure cross-site cookies. Concept2 must allow the callback URL exactly as shown, including its scheme, host, port, and path.
+
+### Simulate and submit a workout to the Concept2 logbook
+
+The CLI reads a workout from an imported-format CSV, simulates its result, and can submit that result to the linked Concept2 account. It does not run the workout on a PM5. From the repository root, first do a dry run to inspect the generated result without submitting it:
+
+```powershell
+node server/scripts/submitWorkout.js "data/imports/workouts/Import Sheet - Block1.csv" "W1S1" --dry-run
+```
+
+Replace the CSV path and workout code with values from your file. The workout code must occur exactly once in that CSV. To submit the simulated result to the most recently linked Concept2 account, omit `--dry-run`:
+
+```powershell
+node server/scripts/submitWorkout.js "data/imports/workouts/YOUR_FILE.csv" "YOUR_WORKOUT_CODE"
+```
+
+This creates a workout result in the Concept2 logbook; use the dry run first to avoid submitting test data unintentionally. The root `.env` must contain a valid `DATABASE_URL`, and a Concept2 account must already be linked through the app. The CLI accepts `--pace <seconds>` to set the simulated average pace per 500 m (default `130`), and `--device <uuid>` to select a specific linked device instead of the most recently linked account. To see the command usage, run `node server/scripts/submitWorkout.js --help`.
+
+The same command is available as an npm script from `server/`:
+
+```powershell
+npm run submit-workout -- "../data/imports/workouts/YOUR_FILE.csv" "YOUR_WORKOUT_CODE" --dry-run
+```
+
 For a production-style local run, build the frontend and serve the generated files with Vite preview:
 
 ```powershell
@@ -108,7 +159,13 @@ Set these variables on the Railway Express service:
 DATABASE_URL=<the Railway PostgreSQL connection URL>
 IMPORT_TOKEN=<a long random secret>
 CLIENT_ORIGIN=https://nbrowingclub.com
+CONCEPT2_CLIENT_ID=<the production OAuth application client ID>
+CONCEPT2_CLIENT_SECRET=<the production OAuth application client secret>
+CONCEPT2_REDIRECT_URI=https://your-server-production.up.railway.app/auth/concept2/callback
+CONCEPT2_FRONTEND_URL=https://nbrowingclub.com/training
 ```
+
+Register `CONCEPT2_REDIRECT_URI` exactly as an allowed redirect URL for the production OAuth client in Concept2's developer settings.
 
 Create `.env.production` in the repository root and set the public API domain. This is the domain the browser calls for plan data; do not use the Railway PostgreSQL hostname or add `/training` to it:
 
@@ -130,13 +187,31 @@ The Netlify deployment is unaffected: its build runs `npm run build` without `BA
 
 ## Test and Validate
 
-Run the automated frontend tests once:
+The frontend test command uses Vitest. Run the full suite once:
 
 ```powershell
 npm test
 ```
 
-Run Vitest in watch mode while developing:
+Pass Vitest CLI options and filters after `--`. For example, run one test file:
+
+```powershell
+npm test -- src/PlanBrowser.test.tsx
+```
+
+Run tests whose names match a text or regular-expression pattern:
+
+```powershell
+npm test -- -t "shows Plans first"
+```
+
+Combine a file path with a test-name filter to narrow the run further:
+
+```powershell
+npm test -- src/Pm5WorkoutSender.test.tsx -t "time-based"
+```
+
+Start watch mode to rerun matching tests as files change:
 
 ```powershell
 npm test -- --watch
