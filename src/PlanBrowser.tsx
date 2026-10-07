@@ -27,6 +27,7 @@ import {
 } from './api'
 import Pm5WorkoutSender from './Pm5WorkoutSender'
 import MarkdownDescription from './components/MarkdownDescription'
+import { resolveAssetUrl } from './resolveAssetUrl'
 import './PlanBrowser.css'
 
 const planColumns: Column<PlanRow>[] = [
@@ -91,6 +92,25 @@ function LevelBadge({ level }: { level: string | null }) {
 
 const workoutColumns: Column<WorkoutRow>[] = [
   { key: 'week_commencing', header: 'w/c', render: (w) => w.weekCommencingDisplay, sortValue: (w) => w.week_commencing },
+  {
+    key: 'ergdata_url',
+    header: <span className="sr-only">ErgData</span>,
+    width: '2.5rem',
+    render: (w) => w.ergdata_url ? (
+      <a
+        className="ergdata-link"
+        href={w.ergdata_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Open ${w.workout_code} in ErgData`}
+        title="Open in ErgData"
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        <img src={resolveAssetUrl('/ic_launcher_round.png')} width="18" height="18" alt="" />
+      </a>
+    ) : null,
+  },
   { key: 'workout_code', header: 'Workout', render: (w) => w.workout_code, sortValue: (w) => w.workout_code },
   {
     key: 'level',

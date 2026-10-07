@@ -34,6 +34,7 @@ const rampWorkout: Workout = {
   description: 'One-minute power ramp test',
   sort_order: 0,
   level: 'L1',
+  ergdata_url: null,
   has_intervals: true,
 }
 

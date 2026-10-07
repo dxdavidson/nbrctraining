@@ -100,7 +100,7 @@ app.get('/api/workouts', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, block_id, wk_type, workout_code, week_commencing, description, sort_order, level,
+      `SELECT id, block_id, wk_type, workout_code, week_commencing, description, sort_order, level, ergdata_url,
               EXISTS (SELECT 1 FROM intervals WHERE intervals.workout_id = workouts.id) AS has_intervals
        FROM workouts WHERE block_id = $1 ORDER BY sort_order NULLS LAST, week_commencing`,
       [blockId]
@@ -185,8 +185,8 @@ app.post('/api/admin/import/workouts', async (req, res) => {
       const blockId = blockIds.get(`${group.workout.plan_code}\u0000${group.workout.block_code}`)
 
       const { rows: workoutRows } = await client.query(
-        `INSERT INTO workouts (block_id, wk_type, workout_code, week_commencing, description, sort_order, level)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO workouts (block_id, wk_type, workout_code, week_commencing, description, sort_order, level, ergdata_url)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING id`,
         [
           blockId,
@@ -196,6 +196,7 @@ app.post('/api/admin/import/workouts', async (req, res) => {
           group.workout.description,
           group.workout.sort_order,
           group.workout.level,
+          group.workout.ergdata_url ?? null,
         ]
       )
       const workoutId = workoutRows[0].id

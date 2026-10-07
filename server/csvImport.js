@@ -118,6 +118,10 @@ export function parseWorkoutCsv(csvText) {
       throw new Error(`Row ${lineIndex + 2}: plan_code, block_code, wk_type, and workout_code are required.`)
     }
 
+    if (row.ergdata_url && !/^https:\/\/\S+$/.test(row.ergdata_url)) {
+      throw new Error(`Row ${lineIndex + 2}: ergdata_url must be an https URL.`)
+    }
+
     const hasIntervalData = INTERVAL_COLUMNS.some((column) => row[column] !== null)
     if (row.wk_type === 'OTW' && !hasIntervalData) {
       row.has_interval = false
@@ -145,7 +149,7 @@ export function parseWorkoutCsv(csvText) {
     throw new Error('CSV contains a header but no data rows.')
   }
 
-  const workoutFields = ['plan_code', 'block_code', 'wk_type', 'week_commencing', 'description', 'sort_order', 'level']
+  const workoutFields = ['plan_code', 'block_code', 'wk_type', 'week_commencing', 'description', 'sort_order', 'level', 'ergdata_url']
   const workoutValues = new Map()
   const intervalKeys = new Set()
   for (const row of rows) {

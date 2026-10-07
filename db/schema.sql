@@ -32,6 +32,7 @@ CREATE TABLE workouts (
     description     TEXT,
     sort_order      INTEGER,
     level           TEXT,
+    ergdata_url     TEXT,
     CONSTRAINT uq_workouts_block_id_workout_code UNIQUE (block_id, workout_code)
 );
 

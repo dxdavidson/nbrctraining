@@ -10,6 +10,7 @@ describe('Pm5WorkoutSender', () => {
     id: 'w1',
     block_id: 'b1',
     wk_type: null,
+    ergdata_url: null,
     workout_code: 'WC1',
     week_commencing: null,
     description: 'Test workout',

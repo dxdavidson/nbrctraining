@@ -182,6 +182,32 @@ npm run lint
 
 The test suite uses Vitest with a `jsdom` environment and Testing Library. Tests are located alongside the relevant source files in `src/`.
 
+## Versioning
+
+The About box displays the version from `package.json`, injected at build time by `vite.config.ts`, so bumping the version only requires updating that one field.
+
+Use `npm version` to bump it (this also creates a git commit and tag):
+
+```powershell
+npm version patch   # bug fixes and data updates, e.g. 1.2.3 -> 1.2.4
+npm version minor   # new features, e.g. 1.2.3 -> 1.3.0
+npm version major   # breaking changes, e.g. 1.2.3 -> 2.0.0
+```
+
+Or set an exact version directly:
+
+```powershell
+npm version 1.4.0
+```
+
+Then push the commit and tag together:
+
+```powershell
+git push --follow-tags
+```
+
+Bump once per release rather than on every commit; the commit hash and build timestamp shown in the About box identify intermediate deploys.
+
 ## Concept2 rankings scraper
 
 `scripts/scrapeRankings.mjs` fetches the public Concept2 Logbook rankings pages (`https://log.concept2.com/rankings/<year>/rower/<distance>?rower=rower&gender=<M|F>&status=race`) across a range of years and aggregates every row into a single CSV file. It walks all paginated result pages for each year and gender, retries failed page fetches, and streams rows to disk as it goes.

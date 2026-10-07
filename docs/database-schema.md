@@ -26,6 +26,7 @@ erDiagram
 		string description
 		int sort_order
 		string level
+		string ergdata_url
 	}
 	INTERVALS {
         uuid id PK
