@@ -14,7 +14,7 @@ const CONCEPT2_ENDPOINTS = {
     apiBaseUrl: 'https://log.concept2.com/api',
   },
 }
-const CONCEPT2_SCOPES = 'user:read,results:write'
+const CONCEPT2_SCOPES = 'user:read,results:read,results:write'
 const DEVICE_COOKIE_NAME = 'c2_device_id'
 const DEVICE_COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 365
 

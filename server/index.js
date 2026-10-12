@@ -100,7 +100,7 @@ app.get('/api/workouts', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, block_id, wk_type, workout_code, week_commencing, description, sort_order, level, ergdata_url,
+      `SELECT id, block_id,       wk_type, workout_code, to_char(week_commencing, 'YYYY-MM-DD') AS week_commencing, description, sort_order, level, ergdata_url,
               EXISTS (SELECT 1 FROM intervals WHERE intervals.workout_id = workouts.id) AS has_intervals
        FROM workouts WHERE block_id = $1 ORDER BY sort_order NULLS LAST, week_commencing`,
       [blockId]

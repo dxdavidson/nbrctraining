@@ -229,6 +229,17 @@ Options:
 
 The output CSV includes one row per ranked result, with columns `year, gender, rank, name, age, location, country, affiliation, distance, time, verified, status`.
 
+## Concept2 Logbook export CLI
+
+`server/concept2Query.js` exports Logbook workouts for one or more Log IDs (Concept2 user IDs) to a CSV file. It does not use the database. Requests are authorised with a Concept2 OAuth access token that has the `results:read` scope, supplied with `--token` or the `CONCEPT2_ACCESS_TOKEN` environment variable (the root `.env` is loaded). Concept2 only returns results the token's owner is permitted to see. The app's OAuth login now requests `results:read`, so accounts connected earlier must reconnect to obtain such a token.
+
+```powershell
+cd server
+node concept2Query.js --logids 123456,234567 --fromdate 2026-01-01 --todate 2026-03-31 --out results.csv
+```
+
+Options: `--logids` (required, comma-delimited), `--fromdate` and `--todate` (optional, `YYYY-MM-DD`, inclusive), `--token`, `--out` (default `concept2-results.csv`), `--env development|production` (default `CONCEPT2_LOGBOOK_ENVIRONMENT`, else `development`) and `--type` (e.g. `rower`). The CSV has a `log_id` column plus every field returned by the API; nested objects are flattened to dotted column names (for example `heart_rate.average`) and arrays such as splits are stored as JSON text. A Log ID that fails is reported on stderr and the exit code is 1; the others are still exported.
+
 ## PM5 time-interval protocol
 
 For a standalone time-based workout such as 5:00 (300 seconds), the app follows ErgometerJS's fixed-time interval example. When a workout contains multiple intervals, the app uses ErgometerJS's variable-interval sequence instead, including time intervals as `intervalType=time` entries.
