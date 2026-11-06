@@ -336,18 +336,42 @@ export default function PlanBrowser() {
   const effectiveWeek = week === 'all' ? null : (week ?? currentWeek)
   const visibleWorkouts = effectiveWeek ? sortedWorkouts.filter((w) => w.week_commencing === effectiveWeek) : sortedWorkouts
 
+  const weekIndex = effectiveWeek ? distinctWeeks.indexOf(effectiveWeek) : -1
+  const canGoPrevWeek = weekIndex > 0
+  const canGoNextWeek = weekIndex >= 0 && weekIndex < distinctWeeks.length - 1
+
   const weekPicker = distinctWeeks.length > 0 && (
-    <label className="plan-browser-week-picker">
-      Week
-      <select value={week ?? currentWeek ?? ''} onChange={(e) => setSelection({ week: e.target.value || null })}>
-        {distinctWeeks.map((w) => (
-          <option key={w} value={w}>
-            w/c {formatDate(w)}
-          </option>
-        ))}
-        <option value="all">All weeks</option>
-      </select>
-    </label>
+    <div className="plan-browser-week-picker">
+      <label>
+        Week
+        <select value={week ?? currentWeek ?? ''} onChange={(e) => setSelection({ week: e.target.value || null })}>
+          {distinctWeeks.map((w) => (
+            <option key={w} value={w}>
+              w/c {formatDate(w)}
+            </option>
+          ))}
+          <option value="all">All weeks</option>
+        </select>
+      </label>
+      <button
+        type="button"
+        className="plan-browser-week-step"
+        aria-label="Previous week"
+        disabled={!canGoPrevWeek}
+        onClick={() => setSelection({ week: distinctWeeks[weekIndex - 1] })}
+      >
+        ▲
+      </button>
+      <button
+        type="button"
+        className="plan-browser-week-step"
+        aria-label="Next week"
+        disabled={!canGoNextWeek}
+        onClick={() => setSelection({ week: distinctWeeks[weekIndex + 1] })}
+      >
+        ▼
+      </button>
+    </div>
   )
 
   const workoutsTable = (

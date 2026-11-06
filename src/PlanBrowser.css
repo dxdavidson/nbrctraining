@@ -73,6 +73,28 @@
   margin-bottom: 0.5rem;
 }
 
+.plan-browser-week-picker label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.plan-browser-week-step {
+  font: inherit;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.plan-browser-week-step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .plan-browser-week-picker select {
   font: inherit;
   padding: 0.3rem 0.5rem;
