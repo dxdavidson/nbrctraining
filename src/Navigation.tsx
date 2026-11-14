@@ -25,6 +25,7 @@ export default function Navigation({ routePath }: NavigationProps) {
         <a className={routePath === '/ramp-test' ? 'is-active' : undefined} href={appPath('ramp-test')}>
           Ramp Test
         </a>
+        <a href={appPath('otw.html')}>On the Water</a>
         <details className="technique-navigation" open={isTechniqueRoute}>
           <summary className={isTechniqueRoute ? 'is-active' : undefined}>Technique</summary>
           <div className="technique-navigation-menu">

@@ -1,0 +1,415 @@
+body.otw-document {
+  color-scheme: light;
+  background: #e8f0ee;
+}
+
+body.otw-document #root {
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  border: 0;
+  text-align: left;
+}
+
+.otw-app {
+  --otw-ink: #102a36;
+  --otw-muted: #526971;
+  --otw-accent: #087c68;
+  --otw-card: #fff;
+  --otw-line: #cbd9d6;
+  display: flex;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  padding: max(0.5rem, env(safe-area-inset-top)) max(0.65rem, env(safe-area-inset-right))
+    max(0.5rem, env(safe-area-inset-bottom)) max(0.65rem, env(safe-area-inset-left));
+  color: var(--otw-ink);
+  background: #e8f0ee;
+  font-size: 1rem;
+}
+
+.otw-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: min(100%, 900px);
+  min-height: calc(100dvh - 1rem);
+  margin: 0 auto;
+}
+
+.otw-topbar,
+.otw-heading,
+.otw-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.otw-topbar {
+  position: relative;
+  min-height: 3.2rem;
+}
+
+.otw-heading {
+  display: block;
+}
+
+.otw-heading h1 {
+  margin: 0;
+  color: var(--otw-ink);
+  font-size: clamp(1.25rem, 4vw, 1.65rem);
+  letter-spacing: -0.04em;
+}
+
+.otw-heading p {
+  margin: 0.1rem 0 0;
+  color: var(--otw-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.otw-menu-wrap {
+  position: relative;
+  z-index: 2;
+}
+
+.otw-menu-toggle {
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 1px solid var(--otw-line);
+  border-radius: 0.65rem;
+  color: var(--otw-ink);
+  background: #fff;
+  font: inherit;
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.otw-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  display: grid;
+  min-width: 11rem;
+  padding: 0.35rem;
+  border: 1px solid var(--otw-line);
+  border-radius: 0.7rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(16 42 54 / 18%);
+}
+
+.otw-menu button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.7rem;
+  border: 0;
+  border-radius: 0.4rem;
+  color: var(--otw-ink);
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+
+.otw-menu button[aria-pressed='true'] {
+  color: var(--otw-accent);
+  background: #e8f4f1;
+}
+
+.otw-menu button:disabled {
+  opacity: 0.5;
+}
+
+.otw-metrics {
+  display: grid;
+  flex: 1;
+  grid-template: repeat(3, minmax(0, 1fr)) / repeat(2, minmax(0, 1fr));
+  gap: clamp(0.45rem, 2vw, 0.75rem);
+  min-height: 0;
+}
+
+.otw-metric {
+  display: grid;
+  container-type: inline-size;
+  min-width: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-items: center;
+  padding: clamp(0.5rem, 2.5vw, 1rem);
+  border: 1px solid var(--otw-line);
+  border-radius: 0.8rem;
+  background: var(--otw-card);
+  box-shadow: 0 3px 12px rgb(16 42 54 / 6%);
+}
+
+.otw-metric-label {
+  display: block;
+  align-self: start;
+  color: var(--otw-muted);
+  font-size: clamp(0.7rem, 2.6vw, 0.85rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.otw-metric-value {
+  display: block;
+  overflow: hidden;
+  margin-top: 0.15rem;
+  color: var(--otw-ink);
+  font-size: clamp(1.25rem, min(21cqi, 12dvh), 3.5rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (orientation: landscape) {
+  .otw-metrics {
+    grid-template: repeat(2, minmax(0, 1fr)) / repeat(3, minmax(0, 1fr));
+  }
+
+  .otw-metric {
+    padding: clamp(0.35rem, 2dvh, 0.65rem);
+  }
+
+  .otw-metric-label {
+    font-size: clamp(0.65rem, min(2.6vw, 2.8dvh), 0.8rem);
+  }
+
+  .otw-metric-value {
+    font-size: clamp(1rem, min(21cqi, 12dvh), 3rem);
+  }
+}
+
+.otw-metric-unit {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--otw-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.otw-metric-tappable {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.otw-metric-tappable:disabled {
+  opacity: 1;
+}
+
+.otw-metric-tappable:disabled .otw-metric-value {
+  color: var(--otw-ink);
+}
+
+.otw-notices {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--otw-muted);
+  font-size: 0.75rem;
+}
+
+.otw-notices p {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.otw-notices .otw-notice-error {
+  color: #8c2525;
+}
+
+.otw-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.otw-button {
+  min-height: 3.5rem;
+  padding: 0.55rem 0.35rem;
+  border: 1px solid #aebfbc;
+  border-radius: 0.75rem;
+  color: var(--otw-ink);
+  background: #fff;
+  font: inherit;
+  font-size: clamp(0.9rem, 3.6vw, 1.05rem);
+  font-weight: 800;
+  touch-action: manipulation;
+}
+
+.otw-button:disabled {
+  opacity: 0.5;
+}
+
+.otw-button-primary {
+  color: #fff;
+  border-color: var(--otw-accent);
+  background: var(--otw-accent);
+}
+
+.otw-button-danger {
+  color: #8c2525;
+}
+
+.otw-dialog-backdrop {
+  position: fixed;
+  z-index: 5;
+  inset: 0;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding: 1rem;
+  background: rgb(16 42 54 / 48%);
+}
+
+.otw-dialog {
+  width: min(100%, 34rem);
+  max-height: min(85dvh, 46rem);
+  overflow-y: auto;
+  padding: 1rem;
+  border: 1px solid var(--otw-line);
+  border-radius: 0.9rem;
+  background: #fff;
+  box-shadow: 0 12px 40px rgb(16 42 54 / 24%);
+}
+
+.otw-dialog-header {
+  margin-bottom: 0.8rem;
+}
+
+.otw-dialog-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.otw-dialog-close {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--otw-line);
+  border-radius: 0.5rem;
+  color: var(--otw-ink);
+  background: #fff;
+  font: inherit;
+  font-size: 1.5rem;
+}
+
+.otw-panel-content {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.otw-panel-label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--otw-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.otw-panel-content select {
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--otw-line);
+  border-radius: 0.45rem;
+  color: var(--otw-ink);
+  background: #fff;
+  font: inherit;
+}
+
+.otw-note,
+.otw-message {
+  margin: 0;
+  color: var(--otw-muted);
+  font-size: 0.9rem;
+}
+
+.otw-message {
+  padding: 0.75rem;
+  border: 1px solid #e2bd65;
+  border-radius: 0.55rem;
+  color: #523a00;
+  background: #fff5d5;
+}
+
+.otw-message-error {
+  border-color: #d49a9a;
+  color: #6c1d1d;
+  background: #fff0f0;
+}
+
+.otw-history-list {
+  display: grid;
+  gap: 0.55rem;
+  max-height: 55dvh;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.otw-history-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--otw-line);
+}
+
+.otw-history-list li > div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.otw-history-list span {
+  color: var(--otw-muted);
+  font-size: 0.8rem;
+}
+
+.otw-panel-button,
+.otw-remote-actions button {
+  min-height: 2.6rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--otw-line);
+  border-radius: 0.45rem;
+  color: var(--otw-ink);
+  background: #fff;
+  font: inherit;
+  font-weight: 700;
+}
+
+.otw-remote-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.otw-remote-actions button[aria-pressed='true'] {
+  border-color: var(--otw-accent);
+  color: var(--otw-accent);
+}
+
+.otw-button:focus-visible,
+.otw-menu button:focus-visible,
+.otw-menu-toggle:focus-visible,
+.otw-metric-tappable:focus-visible,
+.otw-dialog button:focus-visible,
+.otw-dialog select:focus-visible {
+  outline: 3px solid #f0a43b;
+  outline-offset: 2px;
+}
+
+@media (max-height: 480px) {
+  .otw-shell {
+    min-height: 460px;
+  }
+}

@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
 // Netlify sets COMMIT_REF automatically; fall back to git for local dev builds.
 function getCommitHash(): string {
@@ -23,6 +24,14 @@ const BASE_PATH = process.env.BASE_PATH ?? '/'
 // https://vite.dev/config/
 export default defineConfig({
   base: BASE_PATH,
+  build: {
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        otw: fileURLToPath(new URL('./otw.html', import.meta.url)),
+      },
+    },
+  },
   define: {
     __APP_VERSION__: JSON.stringify(version),
     __COMMIT_HASH__: JSON.stringify(getCommitHash()),
@@ -42,7 +51,7 @@ export default defineConfig({
       manifest: {
         name: 'NBRC Training',
         short_name: 'NBRC Training',
-        description: 'Browse training plans and send workouts to a Concept2 PM5.',
+        description: 'Browse rowing plans, send PM5 workouts, and record sessions on the water.',
         start_url: BASE_PATH,
         scope: BASE_PATH,
         display: 'standalone',
@@ -64,12 +73,13 @@ export default defineConfig({
         ],
       },
       workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
         // Let direct navigations to static images hit the network instead of falling back to the app shell.
         navigateFallbackDenylist: [/\.(?:png|jpe?g|gif|svg|webp|ico|avif)$/i],
-        // Cache read-only plan data so a previously viewed workout is available offline.
+        // Cache read-only training data so previously viewed workouts remain available offline.
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => /\/api\/(plans|blocks|workouts|intervals)/.test(url.pathname),
+            urlPattern: ({ url }) => /\/api\/(plans|blocks|workouts|intervals|otw\/workouts)/.test(url.pathname),
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'nbrctraining-api-cache',

@@ -44,6 +44,15 @@ export interface Interval {
   target_value: number | null
 }
 
+export interface OtwWorkout {
+  id: string
+  workout_code: string
+  description: string | null
+  plan_title: string
+  block_title: string
+  intervals: Interval[]
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
 
 async function getJson<T>(path: string): Promise<T> {
@@ -68,4 +77,8 @@ export function fetchWorkouts(blockId: string): Promise<Workout[]> {
 
 export function fetchIntervals(workoutId: string): Promise<Interval[]> {
   return getJson(`/api/intervals?workout_id=${encodeURIComponent(workoutId)}`)
+}
+
+export function fetchOtwWorkouts(): Promise<OtwWorkout[]> {
+  return getJson('/api/otw/workouts')
 }
