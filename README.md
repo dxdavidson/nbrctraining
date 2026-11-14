@@ -111,7 +111,7 @@ You can test the OTW display in Chrome or Edge without moving outdoors:
 
 Press **Stop** before running `stopOtwGpsSimulation()` in the Console. Refreshing the page also restores the browser's normal geolocation. If the database has no OTW workouts, Just Row can still be tested, but the workout list will be empty.
 
-The phone-first OTW display keeps six large data fields in a two-column, three-row grid in portrait and a three-column, two-row grid in landscape. Landscape field text and padding scale to the available screen size. Metric labels sit at the top-left of each field and include their units. Start/Pause, Stop, and Reset controls stay at the bottom. Distance and elapsed time show session totals in Just Row and current-interval values in Workout mode; average pace follows the same scope. Pace is shown per 500 m, and time-based workout intervals show their remaining time as `mm:ss`. Tap the Stroke Rate field at each catch to record a stroke. On supported phones, install the app and launch it from the home screen to use standalone mode without the usual browser controls; a regular browser tab cannot hide them.
+The phone-first OTW display keeps six large data fields in a two-column, three-row grid in portrait and a three-column, two-row grid in landscape. Landscape field text and padding scale to the available screen size. Metric labels sit at the top-left of each field and include their units. Start/Pause, Stop, and Reset controls stay at the bottom. Distance and elapsed time show session totals in Just Row and current-interval values in Workout mode; average pace follows the same scope. Pace is shown per 500 m, and time-based workout intervals show their remaining time as `mm:ss`. Tap the Stroke Rate field at each catch to record a stroke. On supported phones, install the app and launch it from the home screen to use standalone mode without the usual browser controls; a regular browser tab cannot hide them. The OTW page is a separately installable app ("NBRC On the Water", its own manifest `otw.webmanifest`) that launches `otw.html`; installing from the home page gives the main app instead, and both can be installed side by side.
 
 Use the top-right menu to choose Just Row or an OTW workout, browse session history and export any saved session as FIT, or access stroke and remote settings. **Workout** lists published workouts with `wk_type = 'OTW'`, including their time- and distance-based work/recovery intervals. Opening the page online downloads the workout catalogue and intervals into IndexedDB so they remain selectable offline. Interval changes advance automatically and trigger a beep/vibration when supported. Positions with accuracy worse than 25 m and implausible jumps are filtered; speed is smoothed over recent valid samples. Session records are saved to IndexedDB while rowing. The FIT file includes 1 Hz records and a lap for each completed workout interval.
 
@@ -250,6 +250,26 @@ Upload the contents of `dist/` to the `/training` path on the host. The host mus
 After deployment, load `https://nbrowingclub.com/training` and confirm plan data loads. The browser should request it from `https://your-server-production.up.railway.app/api/...`.
 
 The Netlify deployment is unaffected: its build runs `npm run build` without `BASE_PATH` set, so it keeps using `/` as the base and continues serving from the domain root.
+
+### Staging build
+
+To test a branch against a staging API, build for a separate sub-path (`/trainingdev/`, uploaded to `public_html/trainingdev`). From the repo root:
+
+```powershell
+.\scripts\build-staging.ps1
+```
+
+The script builds into `dist-staging\` (leaving `dist\` untouched), rewrites `RewriteBase` in its `.htaccess`, and creates `dist-staging.zip`. Upload the zip to `public_html/trainingdev` and extract it there. The production `dist\` build is unaffected, and the script restores your environment variables when it finishes.
+
+It sets these for the build:
+
+- `BASE_PATH=/trainingdev/`
+- `VITE_API_BASE_URL=https://nbrctraining-staging.up.railway.app`
+- `VITE_ENV_LABEL=STAGING`, which adds an orange banner and a `[STAGING]` tab title, and renames the installed PWAs "NBRC Training (STAGING)" and "NBRC On the Water (STAGING)" with an orange theme colour.
+
+Override any of them with `-BasePath`, `-ApiUrl` and `-Label`, for example `.\scripts\build-staging.ps1 -ApiUrl https://other-api.example.com`. Set `CLIENT_ORIGIN` on the staging API to the frontend origin (for example `https://nbrowingclub.com`, without a path).
+
+After the first upload, uninstall any old copy of the app from your phone and clear the site data before reinstalling, so the new manifest is used.
 
 ## Test and Validate
 
