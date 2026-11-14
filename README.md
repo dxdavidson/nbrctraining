@@ -41,7 +41,81 @@ The API currently expects the database tables to contain plan, block, workout, a
 
 ## Navigation
 
-The default **Rowing Plans** page is available at `/`. **Ramp Test** at `/ramp-test` generates and sends a configurable one-minute watt ramp, then estimates 2K pace from the final complete and partial stages. **Round Robin Ergos** remains a placeholder. The **Admin** menu contains the workout importer.
+The default **Rowing Plans** page is available at `/`. **On the Water** at `/otw.html` is a dedicated coxswain display for St Ayles skiff sessions. **Ramp Test** at `/ramp-test` generates and sends a configurable one-minute watt ramp, then estimates 2K pace from the final complete and partial stages. **Round Robin Ergos** remains a placeholder. The **Admin** menu contains the workout importer.
+
+## On-the-Water rowing
+
+Open **On the Water** from the main navigation or directly at `/otw.html`. It is a second Vite entry and is included in the PWA precache for direct offline launch. GPS and screen-wake features require a secure context (HTTPS, or localhost) and location permission.
+
+### Simulate GPS locally
+
+You can test the OTW display in Chrome or Edge without moving outdoors:
+
+1. Run the app locally and open `http://localhost:5173/otw.html`.
+2. Open DevTools → **Console** and run this before pressing **Start**:
+
+   ```js
+   (() => {
+     const originalDescriptor = Object.getOwnPropertyDescriptor(navigator, 'geolocation')
+     const timers = new Map()
+     let nextId = 1
+
+     Object.defineProperty(navigator, 'geolocation', {
+       configurable: true,
+       value: {
+         watchPosition(success) {
+           const id = nextId++
+           const startedAt = Date.now()
+           const update = () => {
+             const seconds = (Date.now() - startedAt) / 1000
+             success({
+               coords: {
+                 latitude: 51.5074 + (3 * seconds) / 111320,
+                 longitude: -0.1278,
+                 accuracy: 5,
+                 speed: 3,
+                 heading: 0,
+                 altitude: null,
+                 altitudeAccuracy: null,
+               },
+               timestamp: Date.now(),
+             })
+           }
+           update()
+           timers.set(id, setInterval(update, 1000))
+           return id
+         },
+         clearWatch(id) {
+           clearInterval(timers.get(id))
+           timers.delete(id)
+         },
+       },
+     })
+
+     window.stopOtwGpsSimulation = () => {
+       for (const timer of timers.values()) clearInterval(timer)
+       if (originalDescriptor) {
+         Object.defineProperty(navigator, 'geolocation', originalDescriptor)
+       } else {
+         delete navigator.geolocation
+       }
+       delete window.stopOtwGpsSimulation
+     }
+
+     console.log('OTW GPS simulation active: moving north at about 3 m/s.')
+   })()
+   ```
+
+3. Press **Start**. The simulation updates location once per second at about 3 m/s. Tap **Stroke Rate** twice, about two seconds apart, to see a rate.
+4. To test distance-based workout intervals, choose a workout from the menu before starting. Time-based intervals advance without GPS.
+
+Press **Stop** before running `stopOtwGpsSimulation()` in the Console. Refreshing the page also restores the browser's normal geolocation. If the database has no OTW workouts, Just Row can still be tested, but the workout list will be empty.
+
+The phone-first OTW display keeps six large data fields in a two-column, three-row grid in portrait and a three-column, two-row grid in landscape. Landscape field text and padding scale to the available screen size. Metric labels sit at the top-left of each field and include their units. Start/Pause, Stop, and Reset controls stay at the bottom. Distance and elapsed time show session totals in Just Row and current-interval values in Workout mode; average pace follows the same scope. Pace is shown per 500 m, and time-based workout intervals show their remaining time as `mm:ss`. Tap the Stroke Rate field at each catch to record a stroke. On supported phones, install the app and launch it from the home screen to use standalone mode without the usual browser controls; a regular browser tab cannot hide them.
+
+Use the top-right menu to choose Just Row or an OTW workout, browse session history and export any saved session as FIT, or access stroke and remote settings. **Workout** lists published workouts with `wk_type = 'OTW'`, including their time- and distance-based work/recovery intervals. Opening the page online downloads the workout catalogue and intervals into IndexedDB so they remain selectable offline. Interval changes advance automatically and trigger a beep/vibration when supported. Positions with accuracy worse than 25 m and implausible jumps are filtered; speed is smoothed over recent valid samples. Session records are saved to IndexedDB while rowing. The FIT file includes 1 Hz records and a lap for each completed workout interval.
+
+The display uses Screen Wake Lock when available and a muted-video fallback otherwise. Bluetooth keyboard/media remotes act as HID key events; use **Learn** in Remote controls to map Start/Pause, Stop, Reset, and Stroke. Reset requires a long press on the remote or confirmation on screen. Stroke-rate timeout defaults to 3 seconds (configurable from 2–10), the averaging window can be set to 4, 5, or 6 catch intervals, and the expected slowest rate (used for a timeout warning) can be adjusted from 16–22 spm.
 
 ## CSV workout import
 
@@ -75,6 +149,29 @@ To use a different API URL, add this optional variable to the root `.env` before
 ```dotenv
 VITE_API_BASE_URL=http://localhost:4000
 ```
+
+### Open the local app on a phone
+
+You can use a phone on the same Wi-Fi network to test the app running on your computer:
+
+1. On the computer, run `ipconfig` and note the IPv4 address for its Wi-Fi adapter (for example, `192.168.1.23`). Do not use `localhost` or `127.0.0.1` on the phone; those addresses refer to the phone itself.
+2. In the repository root `.env`, set `VITE_API_BASE_URL` to the computer's address and API port:
+
+   ```dotenv
+   VITE_API_BASE_URL=http://192.168.1.23:4000
+   ```
+
+   Replace the example address with the computer's actual IPv4 address. Restart Vite after changing `.env`.
+3. Keep the API running in one terminal (`cd server`, then `npm run dev`). In a second terminal, start Vite so it accepts connections from the network:
+
+   ```powershell
+   npm run dev -- --host 0.0.0.0
+   ```
+
+4. On the phone, open `http://192.168.1.23:5173` (or `http://192.168.1.23:5173/otw.html` for On the Water), using the same computer address.
+5. If prompted by Windows Firewall, allow Node.js on private networks. If `CLIENT_ORIGIN` is configured for the API, include the phone's frontend origin, such as `http://192.168.1.23:5173`.
+
+The On-the-Water GPS and screen-wake features require a secure context. A plain HTTP LAN address is not considered secure by most phone browsers, so those features require HTTPS when testing from a phone.
 
 The API port can be changed with `PORT`. For a deployed frontend, set `CLIENT_ORIGIN` on the API to the allowed frontend origin or comma-separated origins.
 
@@ -370,5 +467,6 @@ Interval 1: rest + configure
 - `GET /api/blocks?plan_id=<uuid>`
 - `GET /api/workouts?block_id=<uuid>`
 - `GET /api/intervals?workout_id=<uuid>`
+- `GET /api/otw/workouts` — published OTW workouts with their intervals
 
 All routes require the API server to be running and, for successful database-backed responses, a valid `DATABASE_URL`.

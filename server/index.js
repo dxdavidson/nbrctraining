@@ -132,6 +132,42 @@ app.get('/api/intervals', async (req, res) => {
   }
 })
 
+app.get('/api/otw/workouts', async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT w.id, w.workout_code, w.description, p.title AS plan_title, b.title AS block_title,
+              COALESCE(
+                json_agg(json_build_object(
+                  'id', i.id,
+                  'workout_id', i.workout_id,
+                  'interval_code', i.interval_code,
+                  'interval_order', i.interval_order,
+                  'repeat_count', i.repeat_count,
+                  'work_kind', i.work_kind,
+                  'work_value', i.work_value,
+                  'spm', i.spm,
+                  'recovery_kind', i.recovery_kind,
+                  'recovery_value', i.recovery_value,
+                  'target_mode', i.target_mode,
+                  'target_value', i.target_value
+                ) ORDER BY i.interval_order) FILTER (WHERE i.id IS NOT NULL),
+                '[]'::json
+              ) AS intervals
+       FROM workouts w
+       JOIN blocks b ON b.id = w.block_id
+       JOIN plans p ON p.id = b.plan_id
+       LEFT JOIN intervals i ON i.workout_id = w.id
+       WHERE w.wk_type = 'OTW' AND b.published = TRUE AND p.published = TRUE
+       GROUP BY w.id, p.title, b.title
+       ORDER BY p.title, b.title, w.sort_order NULLS LAST, w.week_commencing, w.workout_code`
+    )
+    res.json(rows)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Failed to fetch OTW workouts' })
+  }
+})
+
 app.post('/api/admin/import/workouts', async (req, res) => {
   if (!requireImportToken(req, res)) return
   if (typeof req.body !== 'string') {

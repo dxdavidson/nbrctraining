@@ -8,6 +8,7 @@ describe('Navigation', () => {
 
     expect(screen.getByRole('link', { name: 'Rowing Plans' })).toHaveAttribute('href', '/')
     expect(screen.getByRole('link', { name: 'Ramp Test' })).toHaveAttribute('href', '/ramp-test')
+    expect(screen.getByRole('link', { name: 'On the Water' })).toHaveAttribute('href', '/otw.html')
     expect(screen.getByRole('link', { name: 'Round Robin Ergos' })).toHaveAttribute('href', '/round-robin-ergos')
     expect(screen.getByRole('link', { name: 'Rowing Machine' })).toHaveAttribute('href', '/technique/rowing-machine')
     expect(screen.getByRole('link', { name: 'On The Water' })).toHaveAttribute('href', '/technique/on-the-water')
