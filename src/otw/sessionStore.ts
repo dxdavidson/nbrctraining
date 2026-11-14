@@ -18,7 +18,7 @@ export interface OtwLap {
 
 export interface OtwSession {
   id: string
-  mode: 'just-row' | 'workout'
+  mode: 'just-row' | 'workout' | 'race'
   workoutId: string | null
   workoutName: string | null
   startedAt: string
@@ -154,6 +154,20 @@ export async function deleteOtwSession(id: string): Promise<void> {
     cursor.continue()
   }
   await transactionDone(transaction)
+}
+
+export async function deleteCompletedOtwSessions(): Promise<void> {
+  const database = await openDatabase()
+  const transaction = database.transaction(SESSIONS_STORE, 'readonly')
+  const request = transaction.objectStore(SESSIONS_STORE).getAll() as IDBRequest<StoredOtwSession[]>
+  const sessions = await new Promise<StoredOtwSession[]>((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error ?? new Error('Unable to read OTW sessions.'))
+  })
+  await transactionDone(transaction)
+  for (const session of sessions) {
+    if (session.endedAt !== null) await deleteOtwSession(session.id)
+  }
 }
 
 export async function getLatestCompletedOtwSession(): Promise<OtwSession | null> {

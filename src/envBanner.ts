@@ -8,4 +8,5 @@ export function showEnvBanner() {
     'position:sticky;top:0;z-index:1000;padding:2px 8px;background:#c2410c;color:#fff;' +
     'font:700 12px sans-serif;text-align:center;letter-spacing:.05em;text-transform:uppercase'
   document.body.prepend(banner)
+  document.documentElement.style.setProperty('--env-banner-height', `${banner.offsetHeight}px`)
 }

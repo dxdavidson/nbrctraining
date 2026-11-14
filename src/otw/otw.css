@@ -1,4 +1,5 @@
 body.otw-document {
+  overflow: hidden;
   color-scheme: light;
   background: #e8f0ee;
 }
@@ -6,7 +7,6 @@ body.otw-document {
 body.otw-document #root {
   width: 100%;
   max-width: none;
-  min-height: 100dvh;
   border: 0;
   text-align: left;
 }
@@ -17,10 +17,12 @@ body.otw-document #root {
   --otw-accent: #087c68;
   --otw-card: #fff;
   --otw-line: #cbd9d6;
+  position: fixed;
+  inset: 0;
   display: flex;
-  min-height: 100dvh;
+  overflow: hidden;
   box-sizing: border-box;
-  padding: max(0.5rem, env(safe-area-inset-top)) max(0.65rem, env(safe-area-inset-right))
+  padding: calc(var(--env-banner-height, 0px) + max(0.5rem, env(safe-area-inset-top))) max(0.65rem, env(safe-area-inset-right))
     max(0.5rem, env(safe-area-inset-bottom)) max(0.65rem, env(safe-area-inset-left));
   color: var(--otw-ink);
   background: #e8f0ee;
@@ -33,7 +35,7 @@ body.otw-document #root {
   flex-direction: column;
   gap: 0.65rem;
   width: min(100%, 900px);
-  min-height: calc(100dvh - 1rem);
+  min-height: 0;
   margin: 0 auto;
 }
 
@@ -63,10 +65,10 @@ body.otw-document #root {
 }
 
 .otw-heading p {
-  margin: 0.1rem 0 0;
-  color: var(--otw-muted);
-  font-size: 0.85rem;
-  font-weight: 700;
+  margin: 0;
+  color: var(--otw-ink);
+  font-size: 1.15rem;
+  font-weight: 800;
 }
 
 .otw-menu-wrap {
@@ -133,6 +135,8 @@ body.otw-document #root {
   display: grid;
   container-type: inline-size;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   grid-template-rows: auto minmax(0, 1fr) auto;
   align-items: center;
   padding: clamp(0.5rem, 2.5vw, 1rem);
@@ -166,8 +170,37 @@ body.otw-document #root {
 }
 
 @media (orientation: landscape) {
+  .otw-app {
+    padding-top: calc(var(--env-banner-height, 0px) + max(0.25rem, env(safe-area-inset-top)));
+    padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
+  }
+
+  .otw-shell {
+    gap: 0.35rem;
+  }
+
+  .otw-topbar {
+    min-height: 2.3rem;
+  }
+
+  .otw-menu-toggle {
+    width: 2.3rem;
+    height: 2.3rem;
+    font-size: 1.4rem;
+  }
+
+  .otw-controls {
+    gap: 0.4rem;
+  }
+
+  .otw-button {
+    min-height: 2.8rem;
+    padding-block: 0.3rem;
+  }
+
   .otw-metrics {
     grid-template: repeat(2, minmax(0, 1fr)) / repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
   }
 
   .otw-metric {
@@ -212,6 +245,10 @@ body.otw-document #root {
   gap: 0.2rem;
   color: var(--otw-muted);
   font-size: 0.75rem;
+}
+
+.otw-notices:empty {
+  display: none;
 }
 
 .otw-notices p {
@@ -370,6 +407,11 @@ body.otw-document #root {
   min-width: 0;
 }
 
+.otw-history-list li > .otw-history-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
 .otw-history-list span {
   color: var(--otw-muted);
   font-size: 0.8rem;
@@ -406,10 +448,4 @@ body.otw-document #root {
 .otw-dialog select:focus-visible {
   outline: 3px solid #f0a43b;
   outline-offset: 2px;
-}
-
-@media (max-height: 480px) {
-  .otw-shell {
-    min-height: 460px;
-  }
 }

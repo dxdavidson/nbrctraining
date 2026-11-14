@@ -13,6 +13,7 @@ import {
   createOtwSession,
   appendOtwRecord,
   deleteOtwSession,
+  deleteCompletedOtwSessions,
   getCachedOtwWorkouts,
   getCompletedOtwSessions,
   saveOtwSession,
@@ -25,7 +26,9 @@ import {
 import { StrokeRateTracker } from './strokeRate'
 import { useScreenAwake } from './useScreenAwake'
 
-type AppMode = 'just-row' | 'workout'
+type AppMode = 'just-row' | 'workout' | 'race'
+
+const MODE_LABELS: Record<AppMode, string> = { 'just-row': 'Just Row', workout: 'Workout', race: 'Race' }
 type SessionStatus = 'idle' | 'running' | 'paused' | 'completed'
 type RemoteAction = 'toggle' | 'stop' | 'reset' | 'stroke'
 type RemoteMap = Record<RemoteAction, string>
@@ -209,7 +212,7 @@ export default function OtwApp() {
       return { segments: [] as OtwSegment[], error: errorMessage(error) }
     }
   }, [selectedWorkout])
-  const wakeStatus = useScreenAwake(status === 'running' || status === 'paused')
+  const wakeStatus = useScreenAwake(true)
 
   const setSessionStatus = useCallback((nextStatus: SessionStatus) => {
     statusRef.current = nextStatus
@@ -282,7 +285,7 @@ export default function OtwApp() {
     const elapsed = elapsedNow()
     const distance = gpsMetricsRef.current.distanceMeters
     let laps = current.laps
-    if (current.mode === 'just-row' && laps.length === 0) {
+    if (current.mode !== 'workout' && laps.length === 0) {
       laps = [{
         label: 'Just Row',
         startElapsedSeconds: 0,
@@ -319,7 +322,6 @@ export default function OtwApp() {
     setSession(completed)
     queueStorageWrite(() => saveOtwSession(completed))
     await storageWriteQueueRef.current
-    downloadFitSession(completed)
   }, [elapsedNow, queueStorageWrite, setSessionStatus])
 
   const resetSession = useCallback(async () => {
@@ -735,9 +737,7 @@ export default function OtwApp() {
     ? 'Keep this screen visible; screen-on support is unavailable.'
     : wakeStatus === 'video-fallback'
       ? 'Screen-on video fallback active.'
-      : wakeStatus === 'screen-lock'
-        ? 'Screen will stay awake.'
-        : null
+      : null
   const timeoutWarningThreshold = (60 / strokeSettings.slowestExpectedSpm) * 1.5
   const timeoutWarning = strokeSettings.timeoutSeconds < timeoutWarningThreshold
   const canStart = status === 'idle' || status === 'completed'
@@ -761,13 +761,31 @@ export default function OtwApp() {
     }
   }
 
+  const deleteHistorySession = (id: string) => {
+    if (!window.confirm('Delete this session from this phone?')) return
+    setHistoryError(null)
+    void deleteOtwSession(id)
+      .then(() => setHistory((items) => items.filter((item) => item.id !== id)))
+      .catch((error: unknown) => setHistoryError(errorMessage(error)))
+  }
+
+  const deleteAllHistory = () => {
+    if (!window.confirm('Delete all saved sessions from this phone? This cannot be undone.')) return
+    setHistoryError(null)
+    void deleteCompletedOtwSessions()
+      .then(() => setHistory([]))
+      .catch((error: unknown) => setHistoryError(errorMessage(error)))
+  }
+
   return (
     <main className="otw-app">
       <div className="otw-shell">
         <header className="otw-topbar">
           <div className="otw-heading">
-            <h1>On the Water</h1>
-            <p>{status === 'running' ? 'Recording' : status === 'paused' ? 'Paused' : status === 'completed' ? 'Complete' : 'Ready'}</p>
+            <p>
+              {MODE_LABELS[mode]}
+              {status === 'running' ? ' · Recording' : status === 'paused' ? ' · Paused' : status === 'completed' ? ' · Complete' : ''}
+            </p>
           </div>
           <div className="otw-menu-wrap">
             <button
@@ -790,6 +808,12 @@ export default function OtwApp() {
                 </button>
                 <button type="button" disabled={!canStart} aria-pressed={mode === 'workout'} onClick={() => openPanel('workout')}>
                   Workout
+                </button>
+                <button type="button" disabled={!canStart} aria-pressed={mode === 'race'} onClick={() => {
+                  setMode('race')
+                  setMenuOpen(false)
+                }}>
+                  Race
                 </button>
                 <button type="button" onClick={() => openPanel('history')}>History</button>
                 <button type="button" onClick={() => openPanel('settings')}>Settings</button>
@@ -909,6 +933,7 @@ export default function OtwApp() {
                   {historyLoading && <p className="otw-note">Loading saved sessions…</p>}
                   {historyError && <p className="otw-message otw-message-error" role="alert">{historyError}</p>}
                   {!historyLoading && !historyError && history.length === 0 && <p className="otw-note">No completed sessions yet.</p>}
+                  <p className="otw-note">Sessions are saved on this phone only. Export a FIT file when you want to upload one.</p>
                   <ul className="otw-history-list">
                     {history.map((savedSession) => (
                       <li key={savedSession.id}>
@@ -917,12 +942,27 @@ export default function OtwApp() {
                           <span>{new Date(savedSession.startedAt).toLocaleString()}</span>
                           <span>{formatElapsed(savedSession.elapsedSeconds)}</span>
                         </div>
-                        <button className="otw-panel-button" type="button" onClick={() => downloadFitSession(savedSession)}>
-                          Export FIT
-                        </button>
+                        <div className="otw-history-actions">
+                          <button className="otw-panel-button" type="button" onClick={() => downloadFitSession(savedSession)}>
+                            Export FIT
+                          </button>
+                          <button
+                            className="otw-panel-button"
+                            type="button"
+                            aria-label={`Delete session ${new Date(savedSession.startedAt).toLocaleString()}`}
+                            onClick={() => deleteHistorySession(savedSession.id)}
+                          >
+                            <span aria-hidden="true">🗑</span>
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>
+                  {history.length > 0 && (
+                    <button className="otw-panel-button" type="button" onClick={deleteAllHistory}>
+                      Delete all history
+                    </button>
+                  )}
                 </div>
               )}
 
