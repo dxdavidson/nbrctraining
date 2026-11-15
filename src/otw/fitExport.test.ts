@@ -54,6 +54,11 @@ function readFitMessages(file: Uint8Array): { globalMessage: number; fields: num
 }
 
 describe('FIT export', () => {
+  it('uses the FIT CRC-16 algorithm', () => {
+    expect(fitCrc16(new TextEncoder().encode('123456789'))).toBe(0xbb3d)
+    expect(fitCrc16(new Uint8Array([14, 32, 0, 8, 243, 12, 0, 0, 46, 70, 73, 84]))).toBe(0x1478)
+  })
+
   it('writes a valid FIT header, data length, and CRCs', () => {
     const file = encodeFitSession(session)
     const view = new DataView(file.buffer, file.byteOffset, file.byteLength)
@@ -63,7 +68,8 @@ describe('FIT export', () => {
     expect(Array.from(file.slice(8, 12))).toEqual([0x2e, 0x46, 0x49, 0x54])
     expect(dataSize).toBe(file.length - 16)
     expect(view.getUint16(12, true)).toBe(fitCrc16(file.slice(0, 12)))
-    expect(view.getUint16(file.length - 2, true)).toBe(fitCrc16(file.slice(14, -2)))
+    expect(view.getUint16(file.length - 2, true)).toBe(fitCrc16(file.slice(0, -2)))
+    expect(fitCrc16(file)).toBe(0)
   })
 
   it('emits record definitions with cadence only for records that have a rate', () => {

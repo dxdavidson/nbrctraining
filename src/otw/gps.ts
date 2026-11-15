@@ -35,6 +35,7 @@ export function distanceBetweenMeters(
 }
 
 export class GpsAccumulator {
+  private distanceAnchor: OtwLocation | null = null
   private previous: OtwLocation | null = null
   private distanceMeters = 0
   private speeds: number[] = []
@@ -53,23 +54,35 @@ export class GpsAccumulator {
       !Number.isFinite(location.latitude) ||
       !Number.isFinite(location.longitude) ||
       !Number.isFinite(location.accuracy) ||
+      !Number.isFinite(location.timestamp) ||
       location.accuracy > MAX_ACCURACY_METERS
     ) {
       return this.metrics
     }
 
-    if (this.previous) {
-      const elapsedSeconds = (location.timestamp - this.previous.timestamp) / 1000
-      const deltaMeters = distanceBetweenMeters(this.previous, location)
+    if (this.distanceAnchor && this.previous) {
+      const previousElapsedSeconds = (location.timestamp - this.previous.timestamp) / 1000
+      if (
+        previousElapsedSeconds <= 0 ||
+        distanceBetweenMeters(this.previous, location) / previousElapsedSeconds > MAX_SPEED_MPS
+      ) {
+        return this.metrics
+      }
+
+      const elapsedSeconds = (location.timestamp - this.distanceAnchor.timestamp) / 1000
+      const deltaMeters = distanceBetweenMeters(this.distanceAnchor, location)
       const speedMps = elapsedSeconds > 0 ? deltaMeters / elapsedSeconds : Number.POSITIVE_INFINITY
-      const noiseThreshold = Math.max(1.5, (this.previous.accuracy + location.accuracy) * 0.1)
+      const noiseThreshold = Math.max(1.5, (this.distanceAnchor.accuracy + location.accuracy) * 0.1)
 
       if (elapsedSeconds > 0 && speedMps <= MAX_SPEED_MPS && deltaMeters > noiseThreshold) {
         this.distanceMeters += deltaMeters
         this.speeds = [...this.speeds, speedMps].slice(-SPEED_WINDOW_SIZE)
+        this.distanceAnchor = location
       } else if (elapsedSeconds > 0 && location.speed !== null && location.speed >= 0 && location.speed <= MAX_SPEED_MPS) {
         this.speeds = [...this.speeds, location.speed].slice(-SPEED_WINDOW_SIZE)
       }
+    } else {
+      this.distanceAnchor = location
     }
 
     this.previous = location
@@ -77,12 +90,14 @@ export class GpsAccumulator {
   }
 
   reset(): void {
+    this.distanceAnchor = null
     this.previous = null
     this.distanceMeters = 0
     this.speeds = []
   }
 
   markGap(): void {
+    this.distanceAnchor = null
     this.previous = null
     this.speeds = []
   }

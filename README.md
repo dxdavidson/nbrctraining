@@ -2,6 +2,30 @@
 
 NBRC Training is a React and TypeScript application for browsing rowing training plans and sending workouts to a PM5 ergometer. The frontend is served by Vite and reads plan data from the Express API backed by PostgreSQL.
 
+## Table of contents
+
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Navigation](#navigation)
+- [On-the-Water rowing](#on-the-water-rowing)
+  - [Simulate GPS locally](#simulate-gps-locally)
+- [CSV workout import](#csv-workout-import)
+- [Run Locally](#run-locally)
+  - [Open the local app on a phone](#open-the-local-app-on-a-phone)
+- [Deploying to https://nbrowingclub.com/training](#deploying-to-httpsnbrowingclubcomtraining)
+  - [Configure the Railway API](#configure-the-railway-api)
+  - [Configure Concept2 Logbook OAuth](#configure-concept2-logbook-oauth)
+  - [Staging build](#staging-build)
+- [Test and Validate](#test-and-validate)
+- [Versioning](#versioning)
+- [Concept2 rankings scraper](#concept2-rankings-scraper)
+- [Concept2 Logbook export CLI](#concept2-logbook-export-cli)
+- [PM5 time-interval protocol](#pm5-time-interval-protocol)
+- [PM5 regression tests](#pm5-regression-tests)
+- [PM5 command buffering](#pm5-command-buffering)
+- [PM5 troubleshooting signs](#pm5-troubleshooting-signs)
+- [PM5 diagnostic output](#pm5-diagnostic-output)
+
 ## Prerequisites
 
 - Node.js 20 or newer
@@ -113,7 +137,9 @@ Press **Stop** before running `stopOtwGpsSimulation()` in the Console. Refreshin
 
 The phone-first OTW display keeps six large data fields in a two-column, three-row grid in portrait and a three-column, two-row grid in landscape. Landscape field text and padding scale to the available screen size. Metric labels sit at the top-left of each field and include their units. Start/Pause, Stop, and Reset controls stay at the bottom. Distance and elapsed time show session totals in Just Row and current-interval values in Workout mode; average pace follows the same scope. Pace is shown per 500 m, and time-based workout intervals show their remaining time as `mm:ss`. Tap the Stroke Rate field at each catch to record a stroke. On supported phones, install the app and launch it from the home screen to use standalone mode without the usual browser controls; a regular browser tab cannot hide them. The OTW page is a separately installable app ("NBRC On the Water", its own manifest `otw.webmanifest`) that launches `otw.html`; installing from the home page gives the main app instead, and both can be installed side by side.
 
-Use the top-right menu to choose the mode (Just Row, Workout, or Race), browse session history and export any saved session as FIT, or access stroke and remote settings. The current mode is shown at the top left (Just Row by default), with the session state appended while recording, paused, or complete. Race is selectable but currently records like Just Row; race behaviour is not implemented yet. **Workout** lists published workouts with `wk_type = 'OTW'`, including their time- and distance-based work/recovery intervals. Opening the page online downloads the workout catalogue and intervals into IndexedDB so they remain selectable offline. Interval changes advance automatically and trigger a beep/vibration when supported. Positions with accuracy worse than 25 m and implausible jumps are filtered; speed is smoothed over recent valid samples. Session records are saved to IndexedDB while rowing. Pressing Stop saves the session silently and does not download anything; open **History** to export a session as FIT, delete one session with the trash button, or use **Delete all history**. History lives only on the phone (IndexedDB) and is never sent to the database. The FIT file includes 1 Hz records and a lap for each completed workout interval.
+The current mode is shown at the top left (Just Row by default), with the session state appended while recording, paused, or complete. Use the adjacent **Just Row**, **Race**, and **Workout** buttons to change modes while stopped; mode changes are disabled during recording and pauses. In **Race**, enter a positive distance in meters in the Remaining field before starting. Valid distances are saved on this device as they are entered; Reset or returning to Race restores the last saved value. Remaining counts down using GPS distance, turns red when the displayed distance reaches zero, and continues into negative values until Stop. In Just Row, Remaining is zero. **Workout** lists published workouts with `wk_type = 'OTW'`, including their time- and distance-based work/recovery intervals. Opening the page online downloads the workout catalogue and intervals into IndexedDB so they remain selectable offline. Interval changes advance automatically and trigger a beep/vibration when supported.
+
+Use the top-right menu to browse session history and export any saved session as FIT, or access stroke and remote settings. Positions with accuracy worse than 25 m and implausible jumps are filtered; small movements accumulate until they exceed the GPS noise threshold, and speed is smoothed over recent valid samples. Session records are saved to IndexedDB while rowing. Pressing Stop saves the session silently and does not download anything; open **History** to export a session as FIT, delete one session with the trash button, or use **Delete all history**. History lives only on the phone (IndexedDB) and is never sent to the database. The FIT file includes 1 Hz records and a lap for each completed workout interval.
 
 The display uses Screen Wake Lock when available and a muted-video fallback otherwise. Bluetooth keyboard/media remotes act as HID key events; use **Learn** in Remote controls to map Start/Pause, Stop, Reset, and Stroke. Reset requires a long press on the remote or confirmation on screen. Stroke-rate timeout defaults to 3 seconds (configurable from 2–10), the averaging window can be set to 4, 5, or 6 catch intervals, and the expected slowest rate (used for a timeout warning) can be adjusted from 16–22 spm.
 

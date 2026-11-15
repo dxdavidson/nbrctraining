@@ -51,10 +51,13 @@ body.otw-document #root {
 .otw-topbar {
   position: relative;
   min-height: 3.2rem;
+  gap: 0.25rem;
 }
 
 .otw-heading {
   display: block;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .otw-heading h1 {
@@ -67,8 +70,39 @@ body.otw-document #root {
 .otw-heading p {
   margin: 0;
   color: var(--otw-ink);
-  font-size: 1.15rem;
+  font-size: clamp(0.7rem, 3vw, 1.15rem);
   font-weight: 800;
+  line-height: 1.1;
+}
+
+.otw-mode-controls {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.2rem;
+}
+
+.otw-mode-controls button {
+  min-height: 2.25rem;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid var(--otw-line);
+  border-radius: 0.5rem;
+  color: var(--otw-ink);
+  background: #fff;
+  font: inherit;
+  font-size: clamp(0.7rem, 2.5vw, 0.85rem);
+  font-weight: 700;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+
+.otw-mode-controls button[aria-pressed='true'] {
+  border-color: var(--otw-accent);
+  color: var(--otw-accent);
+  background: #e8f4f1;
+}
+
+.otw-mode-controls button:disabled {
+  opacity: 0.5;
 }
 
 .otw-menu-wrap {
@@ -112,15 +146,6 @@ body.otw-document #root {
   font: inherit;
   font-weight: 700;
   text-align: left;
-}
-
-.otw-menu button[aria-pressed='true'] {
-  color: var(--otw-accent);
-  background: #e8f4f1;
-}
-
-.otw-menu button:disabled {
-  opacity: 0.5;
 }
 
 .otw-metrics {
@@ -167,6 +192,33 @@ body.otw-document #root {
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.otw-metric-race-complete {
+  border-color: #8c2525;
+  background: #a12323;
+}
+
+.otw-metric-race-complete .otw-metric-label,
+.otw-metric-race-complete .otw-metric-value,
+.otw-metric-race-complete .otw-metric-unit {
+  color: #fff;
+}
+
+.otw-race-distance {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0.1rem;
+  border: 1px solid var(--otw-line);
+  border-radius: 0.35rem;
+  background: #fff;
+  font-family: inherit;
+}
+
+.otw-race-distance::placeholder {
+  color: var(--otw-muted);
+  font-size: 0.45em;
 }
 
 @media (orientation: landscape) {
@@ -441,9 +493,11 @@ body.otw-document #root {
 }
 
 .otw-button:focus-visible,
+.otw-mode-controls button:focus-visible,
 .otw-menu button:focus-visible,
 .otw-menu-toggle:focus-visible,
 .otw-metric-tappable:focus-visible,
+.otw-race-distance:focus-visible,
 .otw-dialog button:focus-visible,
 .otw-dialog select:focus-visible {
   outline: 3px solid #f0a43b;

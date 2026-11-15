@@ -36,6 +36,7 @@ type OtwPanel = 'workout' | 'history' | 'settings' | 'remote' | null
 
 const REMOTE_MAP_STORAGE_KEY = 'nbrctraining.otw.remoteMap'
 const STROKE_SETTINGS_STORAGE_KEY = 'nbrctraining.otw.strokeSettings'
+const RACE_DISTANCE_STORAGE_KEY = 'nbrctraining.otw.raceDistance'
 const DEFAULT_REMOTE_MAP: RemoteMap = {
   toggle: 'Space',
   stop: 'Escape',
@@ -65,6 +66,22 @@ interface StrokeSettings {
   timeoutSeconds: number
   sampleSize: number
   slowestExpectedSpm: number
+}
+
+function validRaceDistance(value: string): boolean {
+  const distance = Number(value)
+  return value.trim() !== '' && Number.isFinite(distance) && distance > 0 && distance <= Number.MAX_SAFE_INTEGER
+}
+
+function loadRaceDistance(): { value: string; error: string | null } {
+  try {
+    const saved = window.localStorage.getItem(RACE_DISTANCE_STORAGE_KEY)
+    if (saved === null) return { value: '', error: null }
+    if (validRaceDistance(saved)) return { value: saved, error: null }
+    return { value: '', error: 'The saved race distance is invalid. Enter a new distance.' }
+  } catch (error) {
+    return { value: '', error: `Race distance could not be loaded: ${errorMessage(error)}` }
+  }
 }
 
 function loadRemoteMap(): RemoteMap {
@@ -155,6 +172,7 @@ function toCachedWorkout(workout: OtwWorkout): CachedOtwWorkout {
 export default function OtwApp() {
   const [mode, setMode] = useState<AppMode>('just-row')
   const [status, setStatus] = useState<SessionStatus>('idle')
+  const [starting, setStarting] = useState(false)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [gpsMetrics, setGpsMetrics] = useState<GpsMetrics>({ distanceMeters: 0, speedMps: null })
   const [cadence, setCadence] = useState<number | null>(null)
@@ -171,6 +189,9 @@ export default function OtwApp() {
   const [learningAction, setLearningAction] = useState<RemoteAction | null>(null)
   const [remoteMap, setRemoteMap] = useState<RemoteMap>(loadRemoteMap)
   const [strokeSettings, setStrokeSettings] = useState<StrokeSettings>(loadStrokeSettings)
+  const [savedRaceDistance, setSavedRaceDistance] = useState(loadRaceDistance)
+  const [raceDistance, setRaceDistance] = useState(savedRaceDistance.value)
+  const [raceStartDistance, setRaceStartDistance] = useState<number | null>(null)
   const [progress, setProgress] = useState(INITIAL_INTERVAL_PROGRESS)
   const [activeSegments, setActiveSegments] = useState<OtwSegment[]>([])
   const [audioWarning, setAudioWarning] = useState<string | null>(null)
@@ -217,6 +238,15 @@ export default function OtwApp() {
   const setSessionStatus = useCallback((nextStatus: SessionStatus) => {
     statusRef.current = nextStatus
     setStatus(nextStatus)
+  }, [])
+
+  const saveRaceDistance = useCallback((value: string) => {
+    try {
+      window.localStorage.setItem(RACE_DISTANCE_STORAGE_KEY, value)
+      setSavedRaceDistance({ value, error: null })
+    } catch (error) {
+      setSavedRaceDistance({ value, error: `Race distance could not be saved: ${errorMessage(error)}` })
+    }
   }, [])
 
   const saveRemoteMap = useCallback((nextMap: RemoteMap) => {
@@ -287,7 +317,7 @@ export default function OtwApp() {
     let laps = current.laps
     if (current.mode !== 'workout' && laps.length === 0) {
       laps = [{
-        label: 'Just Row',
+        label: MODE_LABELS[current.mode],
         startElapsedSeconds: 0,
         endElapsedSeconds: elapsed,
         startDistanceMeters: 0,
@@ -311,6 +341,11 @@ export default function OtwApp() {
       records: recordsRef.current,
       laps,
     }
+    if (current.mode === 'race' && raceStartDistance !== null) {
+      const value = String(raceStartDistance)
+      saveRaceDistance(value)
+      setRaceDistance(value)
+    }
     elapsedBeforeRunRef.current = elapsed
     setElapsedSeconds(elapsed)
     lastGpsAtRef.current = null
@@ -322,9 +357,10 @@ export default function OtwApp() {
     setSession(completed)
     queueStorageWrite(() => saveOtwSession(completed))
     await storageWriteQueueRef.current
-  }, [elapsedNow, queueStorageWrite, setSessionStatus])
+  }, [elapsedNow, queueStorageWrite, raceStartDistance, saveRaceDistance, setSessionStatus])
 
   const resetSession = useCallback(async () => {
+    if (startInProgressRef.current) return
     const current = sessionRef.current
     if (current && !current.endedAt) {
       const previousStatus = statusRef.current
@@ -366,7 +402,9 @@ export default function OtwApp() {
     lapStartedAtRef.current = 0
     lapStartDistanceRef.current = 0
     setStorageError(null)
-  }, [elapsedNow, setSessionStatus])
+    setRaceDistance(savedRaceDistance.value)
+    setRaceStartDistance(null)
+  }, [elapsedNow, savedRaceDistance.value, setSessionStatus])
 
   const askToReset = useCallback(() => {
     if (window.confirm('Reset this OTW session? An unfinished recording will be discarded.')) {
@@ -390,6 +428,7 @@ export default function OtwApp() {
       setIntervalError(selectedSegments.error)
       return
     }
+    if (mode === 'race' && !validRaceDistance(raceDistance)) return
     if (startInProgressRef.current) return
 
     const startedAt = Date.now()
@@ -410,6 +449,7 @@ export default function OtwApp() {
     }
 
     startInProgressRef.current = true
+    setStarting(true)
     try {
       await storageWriteQueueRef.current
       await Promise.all([
@@ -421,6 +461,7 @@ export default function OtwApp() {
       return
     } finally {
       startInProgressRef.current = false
+      setStarting(false)
     }
 
     setStorageError(null)
@@ -437,6 +478,7 @@ export default function OtwApp() {
     recordsRef.current = [initialRecord]
     sessionRef.current = newSession
     setSession(newSession)
+    setRaceStartDistance(mode === 'race' ? Number(raceDistance) : null)
     runStartedAtRef.current = startedAt
     segmentsRef.current = mode === 'workout' ? selectedSegments.segments : []
     setActiveSegments(segmentsRef.current)
@@ -449,7 +491,7 @@ export default function OtwApp() {
       audioContextRef.current = new AudioContextConstructor()
     }
     setSessionStatus('running')
-  }, [mode, selectedSegments, selectedWorkout, setSessionStatus])
+  }, [mode, raceDistance, selectedSegments, selectedWorkout, setSessionStatus])
 
   const toggleSession = useCallback(() => {
     if (statusRef.current === 'running') {
@@ -741,6 +783,11 @@ export default function OtwApp() {
   const timeoutWarningThreshold = (60 / strokeSettings.slowestExpectedSpm) * 1.5
   const timeoutWarning = strokeSettings.timeoutSeconds < timeoutWarningThreshold
   const canStart = status === 'idle' || status === 'completed'
+  const raceRemaining = mode === 'race' && !canStart && raceStartDistance !== null
+    ? raceStartDistance - gpsMetrics.distanceMeters
+    : null
+  const raceTargetReached = raceRemaining !== null && Math.round(raceRemaining) <= 0
+  const canChangeMode = canStart && !starting
   const primaryLabel = status === 'running'
     ? 'Pause'
     : status === 'paused'
@@ -750,7 +797,6 @@ export default function OtwApp() {
   const openPanel = (panel: Exclude<OtwPanel, null>) => {
     setMenuOpen(false)
     setActivePanel(panel)
-    if (panel === 'workout') setMode('workout')
     if (panel === 'history') {
       setHistoryLoading(true)
       setHistoryError(null)
@@ -759,6 +805,15 @@ export default function OtwApp() {
         .catch((error: unknown) => setHistoryError(errorMessage(error)))
         .finally(() => setHistoryLoading(false))
     }
+  }
+
+  const changeMode = (nextMode: AppMode) => {
+    if (!canChangeMode || startInProgressRef.current) return
+    if (nextMode === 'race' && mode !== 'race') setRaceDistance(savedRaceDistance.value)
+    setMode(nextMode)
+    setIntervalError(null)
+    setMenuOpen(false)
+    if (nextMode === 'workout') setActivePanel('workout')
   }
 
   const deleteHistorySession = (id: string) => {
@@ -787,6 +842,19 @@ export default function OtwApp() {
               {status === 'running' ? ' · Recording' : status === 'paused' ? ' · Paused' : status === 'completed' ? ' · Complete' : ''}
             </p>
           </div>
+          <div className="otw-mode-controls" role="group" aria-label="Mode">
+            {(['just-row', 'race', 'workout'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                disabled={!canChangeMode}
+                aria-pressed={mode === option}
+                onClick={() => changeMode(option)}
+              >
+                {MODE_LABELS[option]}
+              </button>
+            ))}
+          </div>
           <div className="otw-menu-wrap">
             <button
               className="otw-menu-toggle"
@@ -800,21 +868,6 @@ export default function OtwApp() {
             </button>
             {menuOpen && (
               <div className="otw-menu" id="otw-menu">
-                <button type="button" disabled={!canStart} aria-pressed={mode === 'just-row'} onClick={() => {
-                  setMode('just-row')
-                  setMenuOpen(false)
-                }}>
-                  Just Row
-                </button>
-                <button type="button" disabled={!canStart} aria-pressed={mode === 'workout'} onClick={() => openPanel('workout')}>
-                  Workout
-                </button>
-                <button type="button" disabled={!canStart} aria-pressed={mode === 'race'} onClick={() => {
-                  setMode('race')
-                  setMenuOpen(false)
-                }}>
-                  Race
-                </button>
                 <button type="button" onClick={() => openPanel('history')}>History</button>
                 <button type="button" onClick={() => openPanel('settings')}>Settings</button>
                 <button type="button" onClick={() => openPanel('remote')}>Remote controls</button>
@@ -840,13 +893,38 @@ export default function OtwApp() {
             <span className="otw-metric-label">Avg Pace (min / 500 m)</span>
             <strong className="otw-metric-value">{formatPacePer500m(averageSpeed)}</strong>
           </div>
-          <div className="otw-metric">
+          <div className={`otw-metric${raceTargetReached ? ' otw-metric-race-complete' : ''}`}>
             <span className="otw-metric-label">Remaining</span>
-            <strong className="otw-metric-value">
-              {intervalMetricsActive && currentSegment && remaining !== null
-                ? formatIntervalRemaining(currentSegment, remaining)
-                : '--'}
-            </strong>
+            {mode === 'race' && canStart ? (
+              <>
+                <input
+                  className="otw-metric-value otw-race-distance"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="any"
+                  aria-label="Race distance (meters)"
+                  placeholder="Meters"
+                  value={raceDistance}
+                  disabled={starting}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    setRaceDistance(value)
+                    if (validRaceDistance(value)) saveRaceDistance(value)
+                  }}
+                />
+                <span className="otw-metric-unit">Enter a distance in meters</span>
+              </>
+            ) : (
+              <strong className="otw-metric-value">
+                {raceRemaining !== null
+                  ? `${formatDistance(raceRemaining)} m`
+                  : intervalMetricsActive && currentSegment && remaining !== null
+                    ? formatIntervalRemaining(currentSegment, remaining)
+                    : mode === 'just-row' ? '0' : '--'}
+              </strong>
+            )}
+            {raceTargetReached && <span className="otw-metric-unit">Target reached</span>}
           </div>
           <button
             className="otw-metric otw-metric-tappable"
@@ -869,6 +947,7 @@ export default function OtwApp() {
           {gpsUnsupported && status === 'running' && <p>GPS is not supported in this browser.</p>}
           {gpsError && <p>{gpsError}</p>}
           {storageError && <p className="otw-notice-error">Recording storage error: {storageError}</p>}
+          {savedRaceDistance.error && <p className="otw-notice-error" role="alert">{savedRaceDistance.error}</p>}
           {wakeMessage && <p>{wakeMessage}</p>}
           {audioWarning && <p>{audioWarning}</p>}
         </div>
@@ -878,14 +957,17 @@ export default function OtwApp() {
             className="otw-button otw-button-primary"
             type="button"
             onClick={status === 'running' ? toggleSession : () => void startOrResume()}
-            disabled={mode === 'workout' && canStart && (!selectedWorkout || Boolean(selectedSegments.error))}
+            disabled={starting || (canStart && (
+              (mode === 'workout' && (!selectedWorkout || Boolean(selectedSegments.error))) ||
+              (mode === 'race' && !validRaceDistance(raceDistance))
+            ))}
           >
             {primaryLabel}
           </button>
           <button className="otw-button" type="button" onClick={stopSession} disabled={status !== 'running' && status !== 'paused'}>
             Stop
           </button>
-          <button className="otw-button otw-button-danger" type="button" onClick={askToReset}>
+          <button className="otw-button otw-button-danger" type="button" onClick={askToReset} disabled={starting}>
             Reset
           </button>
         </section>
@@ -938,7 +1020,7 @@ export default function OtwApp() {
                     {history.map((savedSession) => (
                       <li key={savedSession.id}>
                         <div>
-                          <strong>{savedSession.workoutName ?? 'Just Row'}</strong>
+                          <strong>{savedSession.workoutName ?? MODE_LABELS[savedSession.mode]}</strong>
                           <span>{new Date(savedSession.startedAt).toLocaleString()}</span>
                           <span>{formatElapsed(savedSession.elapsedSeconds)}</span>
                         </div>

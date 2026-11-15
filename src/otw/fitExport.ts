@@ -131,9 +131,10 @@ function appendMessage(bytes: number[], localMessage: number, fields: FitField[]
 export function fitCrc16(bytes: Uint8Array): number {
   let crc = 0
   for (const byte of bytes) {
-    let value = (crc ^ byte) & 0xff
-    value = (value ^ (value << 4)) & 0xff
-    crc = ((crc >>> 8) ^ (value << 8) ^ (value << 3) ^ (value >>> 4)) & 0xffff
+    crc ^= byte
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc & 1) !== 0 ? (crc >>> 1) ^ 0xa001 : crc >>> 1
+    }
   }
   return crc
 }
@@ -259,7 +260,7 @@ export function encodeFitSession(session: OtwSession): Uint8Array {
   appendUnsigned(header, fitCrc16(new Uint8Array(header)), 2)
 
   const file = [...header, ...data]
-  appendUnsigned(file, fitCrc16(new Uint8Array(data)), 2)
+  appendUnsigned(file, fitCrc16(new Uint8Array(file)), 2)
   return new Uint8Array(file)
 }
 
