@@ -29,10 +29,11 @@ import { useScreenAwake } from './useScreenAwake'
 type AppMode = 'just-row' | 'workout' | 'race'
 
 const MODE_LABELS: Record<AppMode, string> = { 'just-row': 'Just Row', workout: 'Workout', race: 'Race' }
-type SessionStatus = 'idle' | 'running' | 'paused' | 'completed'
+type SessionStatus = 'idle' | 'running' | 'resetting' | 'completed'
 type RemoteAction = 'toggle' | 'stop' | 'reset' | 'stroke'
 type RemoteMap = Record<RemoteAction, string>
 type OtwPanel = 'workout' | 'history' | 'settings' | 'remote' | null
+type WorkoutCategory = 'Distance' | 'Time' | 'Mixed' | 'None' | 'Invalid'
 
 const REMOTE_MAP_STORAGE_KEY = 'nbrctraining.otw.remoteMap'
 const STROKE_SETTINGS_STORAGE_KEY = 'nbrctraining.otw.strokeSettings'
@@ -44,7 +45,7 @@ const DEFAULT_REMOTE_MAP: RemoteMap = {
   stroke: 'Enter',
 }
 const ACTION_LABELS: Record<RemoteAction, string> = {
-  toggle: 'Start / Pause',
+  toggle: 'Start',
   stop: 'Stop',
   reset: 'Reset',
   stroke: 'Stroke',
@@ -165,8 +166,17 @@ function toCachedWorkout(workout: OtwWorkout): CachedOtwWorkout {
     description: workout.description,
     plan_title: workout.plan_title,
     block_title: workout.block_title,
+    block_code: workout.block_code,
     intervals: workout.intervals,
   }
+}
+
+function workoutCategory(workout: CachedOtwWorkout): WorkoutCategory {
+  const kinds = new Set(workout.intervals.map((interval) => interval.work_kind))
+  if (kinds.size === 0) return 'None'
+  if ([...kinds].some((kind) => kind !== 'distance' && kind !== 'time')) return 'Invalid'
+  if (kinds.size === 2) return 'Mixed'
+  return kinds.has('distance') ? 'Distance' : 'Time'
 }
 
 export default function OtwApp() {
@@ -178,12 +188,15 @@ export default function OtwApp() {
   const [cadence, setCadence] = useState<number | null>(null)
   const [session, setSession] = useState<OtwSession | null>(null)
   const [workouts, setWorkouts] = useState<CachedOtwWorkout[]>([])
+  const [workoutFilter, setWorkoutFilter] = useState<'All' | WorkoutCategory>('All')
   const [history, setHistory] = useState<OtwSession[]>([])
   const [selectedWorkoutId, setSelectedWorkoutId] = useState('')
+  const [pendingWorkoutId, setPendingWorkoutId] = useState('')
   const [catalogueMessage, setCatalogueMessage] = useState('Loading OTW workouts…')
   const [catalogueError, setCatalogueError] = useState<string | null>(null)
   const [gpsError, setGpsError] = useState<string | null>(null)
   const [storageError, setStorageError] = useState<string | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [intervalError, setIntervalError] = useState<string | null>(null)
   const [learningAction, setLearningAction] = useState<RemoteAction | null>(null)
@@ -224,6 +237,7 @@ export default function OtwApp() {
   const cadenceRef = useRef<number | null>(null)
 
   const selectedWorkout = workouts.find((workout) => workout.id === selectedWorkoutId) ?? null
+  const pendingWorkout = workouts.find((workout) => workout.id === pendingWorkoutId) ?? null
   const gpsUnsupported = !navigator.geolocation
   const selectedSegments = useMemo(() => {
     if (!selectedWorkout) return { segments: [] as OtwSegment[], error: null as string | null }
@@ -310,9 +324,10 @@ export default function OtwApp() {
 
   const finishSession = useCallback(async (finishedByEngine = false) => {
     const current = sessionRef.current
-    if (!current || (statusRef.current !== 'running' && statusRef.current !== 'paused')) return
+    if (!current || statusRef.current !== 'running') return
 
     const elapsed = elapsedNow()
+    const now = Date.now()
     const distance = gpsMetricsRef.current.distanceMeters
     let laps = current.laps
     if (current.mode !== 'workout' && laps.length === 0) {
@@ -334,11 +349,28 @@ export default function OtwApp() {
       }]
     }
 
+    const finalRecord: OtwRecord = {
+      timestamp: now,
+      elapsedSeconds: elapsed,
+      latitude: positionRef.current?.latitude ?? null,
+      longitude: positionRef.current?.longitude ?? null,
+      speedMps: gpsMetricsRef.current.speedMps,
+      distanceMeters: distance,
+      cadence: cadenceRef.current === null ? null : Math.round(cadenceRef.current),
+    }
+    const records = [...recordsRef.current]
+    const lastRecord = records.at(-1)
+    const sequence = lastRecord && Math.floor(lastRecord.timestamp / 1000) === Math.floor(now / 1000)
+      ? records.length - 1
+      : records.length
+    records[sequence] = finalRecord
+    recordsRef.current = records
+
     const completed: OtwSession = {
       ...current,
-      endedAt: new Date().toISOString(),
+      endedAt: new Date(now).toISOString(),
       elapsedSeconds: elapsed,
-      records: recordsRef.current,
+      records,
       laps,
     }
     if (current.mode === 'race' && raceStartDistance !== null) {
@@ -349,24 +381,35 @@ export default function OtwApp() {
     elapsedBeforeRunRef.current = elapsed
     setElapsedSeconds(elapsed)
     lastGpsAtRef.current = null
-    gpsMetricsRef.current = { ...gpsMetricsRef.current, speedMps: null }
-    setGpsMetrics(gpsMetricsRef.current)
     positionRef.current = null
+    strokeTrackerRef.current?.dispose()
     setSessionStatus('completed')
     sessionRef.current = completed
     setSession(completed)
+    queueStorageWrite(() => appendOtwRecord(current.id, sequence, finalRecord))
     queueStorageWrite(() => saveOtwSession(completed))
+    if (!finishedByEngine) {
+      try {
+        downloadFitSession(completed)
+        setExportError(null)
+      } catch (error) {
+        setExportError(`FIT download failed: ${errorMessage(error)}. Export the session from History.`)
+      }
+    }
     await storageWriteQueueRef.current
   }, [elapsedNow, queueStorageWrite, raceStartDistance, saveRaceDistance, setSessionStatus])
 
   const resetSession = useCallback(async () => {
-    if (startInProgressRef.current) return
+    if (startInProgressRef.current || statusRef.current === 'resetting') return
     const current = sessionRef.current
     if (current && !current.endedAt) {
       const previousStatus = statusRef.current
       if (previousStatus === 'running') {
         elapsedBeforeRunRef.current = elapsedNow()
-        setSessionStatus('paused')
+        setSessionStatus('resetting')
+        gpsRef.current.markGap()
+        lastGpsAtRef.current = null
+        positionRef.current = null
       }
       await storageWriteQueueRef.current
       try {
@@ -402,6 +445,7 @@ export default function OtwApp() {
     lapStartedAtRef.current = 0
     lapStartDistanceRef.current = 0
     setStorageError(null)
+    setExportError(null)
     setRaceDistance(savedRaceDistance.value)
     setRaceStartDistance(null)
   }, [elapsedNow, savedRaceDistance.value, setSessionStatus])
@@ -412,13 +456,8 @@ export default function OtwApp() {
     }
   }, [resetSession])
 
-  const startOrResume = useCallback(async () => {
-    if (statusRef.current === 'running') return
-    if (statusRef.current === 'paused') {
-      runStartedAtRef.current = Date.now()
-      setSessionStatus('running')
-      return
-    }
+  const startSession = useCallback(async () => {
+    if (statusRef.current !== 'idle' && statusRef.current !== 'completed') return
 
     if (mode === 'workout' && !selectedWorkout) {
       setIntervalError('Choose an OTW workout before starting workout mode.')
@@ -465,6 +504,7 @@ export default function OtwApp() {
     }
 
     setStorageError(null)
+    setExportError(null)
     setGpsError(null)
     setIntervalError(null)
     gpsRef.current.reset()
@@ -492,21 +532,6 @@ export default function OtwApp() {
     }
     setSessionStatus('running')
   }, [mode, raceDistance, selectedSegments, selectedWorkout, setSessionStatus])
-
-  const toggleSession = useCallback(() => {
-    if (statusRef.current === 'running') {
-      elapsedBeforeRunRef.current = elapsedNow()
-      setElapsedSeconds(elapsedBeforeRunRef.current)
-      gpsRef.current.markGap()
-      lastGpsAtRef.current = null
-      gpsMetricsRef.current = { ...gpsMetricsRef.current, speedMps: null }
-      setGpsMetrics(gpsMetricsRef.current)
-      positionRef.current = null
-      setSessionStatus('paused')
-    } else {
-      void startOrResume()
-    }
-  }, [elapsedNow, setSessionStatus, startOrResume])
 
   const stopSession = useCallback(() => {
     void finishSession()
@@ -543,7 +568,6 @@ export default function OtwApp() {
         cachedWorkoutsRef.current = true
         setWorkouts(cached)
         setCatalogueMessage('Using OTW workouts cached on this device.')
-        setSelectedWorkoutId((current) => current || cached[0].id)
       })
       .catch((error: unknown) => {
         if (active) setCatalogueError(`Unable to read offline workouts: ${errorMessage(error)}`)
@@ -557,8 +581,7 @@ export default function OtwApp() {
         cachedWorkoutsRef.current = cached.length > 0
         setWorkouts(cached)
         setCatalogueError(null)
-        setCatalogueMessage('OTW workouts updated from the server and saved for offline use.')
-        setSelectedWorkoutId((current) => current || cached[0]?.id || '')
+        setCatalogueMessage('')
       })
       .catch((error: unknown) => {
         if (!active) return
@@ -659,6 +682,7 @@ export default function OtwApp() {
 
     const watchId = navigator.geolocation.watchPosition(
       (gpsPosition) => {
+        if (statusRef.current !== 'running') return
         const coords = gpsPosition.coords
         const metrics = gpsRef.current.add({
           latitude: coords.latitude,
@@ -677,6 +701,7 @@ export default function OtwApp() {
         setGpsError(null)
       },
       (error) => {
+        if (statusRef.current !== 'running') return
         lastGpsAtRef.current = null
         gpsRef.current.markGap()
         gpsMetricsRef.current = { ...gpsMetricsRef.current, speedMps: null }
@@ -727,7 +752,7 @@ export default function OtwApp() {
       if (now - (actionDebounceRef.current[matched] ?? 0) < 350) return
       actionDebounceRef.current[matched] = now
 
-      if (matched === 'toggle') toggleSession()
+      if (matched === 'toggle') void startSession()
       else if (matched === 'stop') stopSession()
       else stroke()
     }
@@ -748,32 +773,41 @@ export default function OtwApp() {
       window.removeEventListener('keyup', onKeyUp)
       if (resetHoldRef.current !== null) window.clearTimeout(resetHoldRef.current)
     }
-  }, [askToReset, learningAction, remoteMap, resetSession, saveRemoteMap, stopSession, stroke, toggleSession])
+  }, [askToReset, learningAction, remoteMap, resetSession, saveRemoteMap, startSession, stopSession, stroke])
 
   useEffect(() => () => {
     audioContextRef.current?.close()
   }, [])
 
-  const currentSegment = mode === 'workout' ? activeSegments[progress.index] : undefined
+  const hasWorkoutSession = mode === 'workout' && session?.mode === 'workout' &&
+    session.workoutId === selectedWorkoutId && activeSegments.length > 0 &&
+    (status === 'running' || status === 'completed')
+  const workoutSegments = hasWorkoutSession ? activeSegments : selectedSegments.segments
+  const workoutIndex = hasWorkoutSession ? progress.index : 0
+  const currentSegment = mode === 'workout' ? workoutSegments[workoutIndex] : undefined
   const remaining = currentSegment
-    ? intervalRemaining(
-        currentSegment,
-        progress.segmentStartedAt,
-        progress.segmentStartDistance,
-        elapsedSeconds,
-        gpsMetrics.distanceMeters,
-      )
+    ? hasWorkoutSession
+      ? intervalRemaining(
+          currentSegment,
+          progress.segmentStartedAt,
+          progress.segmentStartDistance,
+          elapsedSeconds,
+          gpsMetrics.distanceMeters,
+        )
+      : currentSegment.value
     : null
-  const intervalMetricsActive = session?.mode === 'workout' &&
-    mode === 'workout' &&
-    currentSegment !== undefined &&
-    (status === 'running' || status === 'paused')
-  const displayedDistance = intervalMetricsActive
-    ? Math.max(0, gpsMetrics.distanceMeters - progress.segmentStartDistance)
-    : gpsMetrics.distanceMeters
-  const displayedElapsed = intervalMetricsActive
-    ? Math.max(0, elapsedSeconds - progress.segmentStartedAt)
-    : elapsedSeconds
+  const intervalMetricsActive = hasWorkoutSession && currentSegment !== undefined
+  const workoutPreview = mode === 'workout' && !hasWorkoutSession && currentSegment !== undefined
+  const displayedDistance = workoutPreview
+    ? 0
+    : intervalMetricsActive
+      ? Math.max(0, gpsMetrics.distanceMeters - progress.segmentStartDistance)
+      : gpsMetrics.distanceMeters
+  const displayedElapsed = workoutPreview
+    ? 0
+    : intervalMetricsActive
+      ? Math.max(0, elapsedSeconds - progress.segmentStartedAt)
+      : elapsedSeconds
   const averageSpeed = displayedElapsed > 0 ? displayedDistance / displayedElapsed : null
   const wakeMessage = wakeStatus === 'unavailable'
     ? 'Keep this screen visible; screen-on support is unavailable.'
@@ -783,17 +817,20 @@ export default function OtwApp() {
   const timeoutWarningThreshold = (60 / strokeSettings.slowestExpectedSpm) * 1.5
   const timeoutWarning = strokeSettings.timeoutSeconds < timeoutWarningThreshold
   const canStart = status === 'idle' || status === 'completed'
-  const raceRemaining = mode === 'race' && !canStart && raceStartDistance !== null
+  const raceRemaining = mode === 'race' && raceStartDistance !== null &&
+    (status === 'running' || status === 'completed')
     ? raceStartDistance - gpsMetrics.distanceMeters
     : null
   const raceTargetReached = raceRemaining !== null && Math.round(raceRemaining) <= 0
   const canChangeMode = canStart && !starting
-  const primaryLabel = status === 'running'
-    ? 'Pause'
-    : status === 'paused'
-      ? 'Resume'
-      : 'Start'
-
+  const workoutStatus = currentSegment
+    ? currentSegment.kind === 'recovery'
+      ? 'Recovery'
+      : `Interval ${workoutSegments.slice(0, workoutIndex + 1).filter((segment) => segment.kind === 'work').length} of ${workoutSegments.filter((segment) => segment.kind === 'work').length}`
+    : null
+  const statusLabel = status === 'resetting'
+    ? 'Resetting'
+    : workoutStatus ?? (status === 'running' ? 'Recording' : status === 'completed' ? 'Complete' : '')
   const openPanel = (panel: Exclude<OtwPanel, null>) => {
     setMenuOpen(false)
     setActivePanel(panel)
@@ -809,11 +846,35 @@ export default function OtwApp() {
 
   const changeMode = (nextMode: AppMode) => {
     if (!canChangeMode || startInProgressRef.current) return
-    if (nextMode === 'race' && mode !== 'race') setRaceDistance(savedRaceDistance.value)
+    setMenuOpen(false)
+    if (nextMode === 'workout') {
+      setIntervalError(null)
+      setPendingWorkoutId(mode === 'workout' ? selectedWorkoutId : '')
+      setActivePanel('workout')
+      return
+    }
+    if (nextMode !== mode || (nextMode === 'race' && status === 'completed')) {
+      setRaceStartDistance(null)
+      if (nextMode === 'race') setRaceDistance(savedRaceDistance.value)
+    }
     setMode(nextMode)
     setIntervalError(null)
-    setMenuOpen(false)
-    if (nextMode === 'workout') setActivePanel('workout')
+  }
+
+  const loadWorkout = (workout: CachedOtwWorkout) => {
+    try {
+      buildOtwSegments(workout.intervals)
+    } catch (error) {
+      setIntervalError(errorMessage(error))
+      return
+    }
+    setSelectedWorkoutId(workout.id)
+    setMode('workout')
+    setRaceStartDistance(null)
+    setActiveSegments([])
+    setProgress(INITIAL_INTERVAL_PROGRESS)
+    setIntervalError(null)
+    setActivePanel(null)
   }
 
   const deleteHistorySession = (id: string) => {
@@ -837,10 +898,7 @@ export default function OtwApp() {
       <div className="otw-shell">
         <header className="otw-topbar">
           <div className="otw-heading">
-            <p>
-              {MODE_LABELS[mode]}
-              {status === 'running' ? ' · Recording' : status === 'paused' ? ' · Paused' : status === 'completed' ? ' · Complete' : ''}
-            </p>
+            <p aria-live="polite">{statusLabel}</p>
           </div>
           <div className="otw-mode-controls" role="group" aria-label="Mode">
             {(['just-row', 'race', 'workout'] as const).map((option) => (
@@ -895,7 +953,7 @@ export default function OtwApp() {
           </div>
           <div className={`otw-metric${raceTargetReached ? ' otw-metric-race-complete' : ''}`}>
             <span className="otw-metric-label">Remaining</span>
-            {mode === 'race' && canStart ? (
+            {mode === 'race' && raceRemaining === null ? (
               <>
                 <input
                   className="otw-metric-value otw-race-distance"
@@ -919,7 +977,7 @@ export default function OtwApp() {
               <strong className="otw-metric-value">
                 {raceRemaining !== null
                   ? `${formatDistance(raceRemaining)} m`
-                  : intervalMetricsActive && currentSegment && remaining !== null
+                  : currentSegment && remaining !== null
                     ? formatIntervalRemaining(currentSegment, remaining)
                     : mode === 'just-row' ? '0' : '--'}
               </strong>
@@ -947,6 +1005,7 @@ export default function OtwApp() {
           {gpsUnsupported && status === 'running' && <p>GPS is not supported in this browser.</p>}
           {gpsError && <p>{gpsError}</p>}
           {storageError && <p className="otw-notice-error">Recording storage error: {storageError}</p>}
+          {exportError && <p className="otw-notice-error" role="alert">{exportError}</p>}
           {savedRaceDistance.error && <p className="otw-notice-error" role="alert">{savedRaceDistance.error}</p>}
           {wakeMessage && <p>{wakeMessage}</p>}
           {audioWarning && <p>{audioWarning}</p>}
@@ -956,18 +1015,18 @@ export default function OtwApp() {
           <button
             className="otw-button otw-button-primary"
             type="button"
-            onClick={status === 'running' ? toggleSession : () => void startOrResume()}
-            disabled={starting || (canStart && (
+            onClick={() => void startSession()}
+            disabled={starting || !canStart || (
               (mode === 'workout' && (!selectedWorkout || Boolean(selectedSegments.error))) ||
               (mode === 'race' && !validRaceDistance(raceDistance))
-            ))}
+            )}
           >
-            {primaryLabel}
+            Start
           </button>
-          <button className="otw-button" type="button" onClick={stopSession} disabled={status !== 'running' && status !== 'paused'}>
+          <button className="otw-button" type="button" onClick={stopSession} disabled={status !== 'running'}>
             Stop
           </button>
-          <button className="otw-button otw-button-danger" type="button" onClick={askToReset} disabled={starting}>
+          <button className="otw-button otw-button-danger" type="button" onClick={() => void resetSession()} disabled={starting || status === 'resetting'}>
             Reset
           </button>
         </section>
@@ -977,33 +1036,66 @@ export default function OtwApp() {
             <section className="otw-dialog" role="dialog" aria-modal="true" aria-labelledby="otw-dialog-title">
               <header className="otw-dialog-header">
                 <h2 id="otw-dialog-title">
-                  {activePanel === 'workout' ? 'Workout' : activePanel === 'history' ? 'History' : activePanel === 'settings' ? 'Settings' : 'Remote controls'}
+                  {activePanel === 'workout' ? 'OTW Workouts' : activePanel === 'history' ? 'History' : activePanel === 'settings' ? 'Settings' : 'Remote controls'}
                 </h2>
                 <button className="otw-dialog-close" type="button" aria-label="Close" onClick={() => setActivePanel(null)}>×</button>
               </header>
 
               {activePanel === 'workout' && (
                 <div className="otw-panel-content">
-                  <label className="otw-panel-label" htmlFor="otw-workout">Choose an OTW workout</label>
-                  <select
-                    id="otw-workout"
-                    value={selectedWorkoutId}
-                    disabled={!canStart}
-                    onChange={(event) => {
-                      setSelectedWorkoutId(event.target.value)
-                      setIntervalError(null)
-                    }}
+                  <label className="otw-panel-label otw-workout-filter">
+                    Filter by
+                    <select value={workoutFilter} onChange={(event) => {
+                      const value = event.target.value
+                      if (value === 'All' || value === 'Distance' || value === 'Time' || value === 'Mixed' || value === 'None' || value === 'Invalid') {
+                        setWorkoutFilter(value)
+                      }
+                    }}>
+                      {(['All', 'Distance', 'Time', 'Mixed', 'None'] as const).map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                      {(workoutFilter === 'Invalid' || workouts.some((workout) => workoutCategory(workout) === 'Invalid')) && <option value="Invalid">Invalid</option>}
+                    </select>
+                  </label>
+                  <table className="otw-workout-table" aria-label="OTW workouts">
+                    <thead><tr><th scope="col">Description</th><th scope="col">Intervals</th></tr></thead>
+                    <tbody>
+                      {workouts.filter((workout) => workoutFilter === 'All' || workoutCategory(workout) === workoutFilter).map((workout) => (
+                        <tr key={workout.id}>
+                          <td>
+                            <button
+                              type="button"
+                              aria-pressed={pendingWorkoutId === workout.id}
+                              onClick={() => {
+                                setPendingWorkoutId(workout.id)
+                                setIntervalError(null)
+                              }}
+                            >
+                              {workout.description || 'No description'}
+                            </button>
+                          </td>
+                          <td className="otw-workout-category">{workoutCategory(workout)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {pendingWorkout && <p className="otw-note">Selected: {pendingWorkout.description || 'No description'}</p>}
+                  <button
+                    className="otw-button otw-button-primary"
+                    type="button"
+                    disabled={!pendingWorkout}
+                    onClick={() => { if (pendingWorkout) loadWorkout(pendingWorkout) }}
                   >
-                    <option value="">Choose a workout…</option>
-                    {workouts.map((workout) => (
-                      <option key={workout.id} value={workout.id}>
-                        {workout.plan_title} · {workout.block_title} · {workout.workout_code}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedWorkout?.description && <p className="otw-note">{selectedWorkout.description}</p>}
-                  <p className="otw-note">{catalogueMessage}</p>
-                  {workouts.length === 0 && !catalogueError && <p className="otw-note">No published OTW workouts are available.</p>}
+                    Load Workout
+                  </button>
+                  {catalogueMessage && <p className="otw-note">{catalogueMessage}</p>}
+                  {workouts.length === 0 && !catalogueError && <p className="otw-note">No OTW workouts are available.</p>}
+                  {workouts.length > 0 && !workouts.some((workout) => workoutFilter === 'All' || workoutCategory(workout) === workoutFilter) && (
+                    <p className="otw-note">No workouts match this filter.</p>
+                  )}
+                  {workouts.some((workout) => workoutCategory(workout) === 'Invalid') && (
+                    <p className="otw-message" role="status">Some workouts have unrecognized work interval types and cannot be started.</p>
+                  )}
                   {catalogueError && <p className="otw-message otw-message-error" role="alert">{catalogueError}</p>}
                   {selectedSegments.error && <p className="otw-message otw-message-error" role="alert">{selectedSegments.error}</p>}
                   {intervalError && <p className="otw-message otw-message-error" role="alert">{intervalError}</p>}

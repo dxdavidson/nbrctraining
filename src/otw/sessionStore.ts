@@ -48,6 +48,7 @@ export interface CachedOtwWorkout {
   description: string | null
   plan_title: string
   block_title: string
+  block_code?: string
   intervals: import('../api').Interval[]
 }
 

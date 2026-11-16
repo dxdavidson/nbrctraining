@@ -394,6 +394,43 @@ body.otw-document #root {
   gap: 0.8rem;
 }
 
+.otw-workout-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.otw-workout-table th,
+.otw-workout-table td {
+  border: 1px solid var(--otw-line);
+}
+
+.otw-workout-table th,
+.otw-workout-table td.otw-workout-category {
+  padding: 0.45rem 0.6rem;
+}
+
+.otw-workout-table td:not(.otw-workout-category) {
+  padding: 0;
+}
+
+.otw-workout-table button {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.6rem;
+  border: 0;
+  color: var(--otw-ink);
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+.otw-workout-table button[aria-pressed='true'] {
+  color: var(--otw-accent);
+  background: #e8f4f1;
+}
+
 .otw-panel-label {
   display: grid;
   gap: 0.35rem;
@@ -411,6 +448,18 @@ body.otw-document #root {
   color: var(--otw-ink);
   background: #fff;
   font: inherit;
+}
+
+.otw-workout-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.otw-panel-content .otw-workout-filter select {
+  width: auto;
+  min-width: 0;
 }
 
 .otw-note,

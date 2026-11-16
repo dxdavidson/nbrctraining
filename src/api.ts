@@ -50,6 +50,7 @@ export interface OtwWorkout {
   description: string | null
   plan_title: string
   block_title: string
+  block_code: string
   intervals: Interval[]
 }
 
