@@ -205,6 +205,15 @@ body.otw-document #root {
   color: #fff;
 }
 
+.otw-metric-recovery {
+  border-color: #9a6100;
+  background: #ffe2a3;
+}
+
+.otw-metric-recovery .otw-metric-label {
+  color: #583700;
+}
+
 .otw-race-distance {
   box-sizing: border-box;
   width: 100%;
@@ -429,6 +438,31 @@ body.otw-document #root {
 .otw-workout-table button[aria-pressed='true'] {
   color: var(--otw-accent);
   background: #e8f4f1;
+}
+
+.otw-summary-table-wrap {
+  overflow-x: auto;
+}
+
+.otw-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.otw-summary-table th,
+.otw-summary-table td {
+  padding: 0.45rem;
+  border: 1px solid var(--otw-line);
+}
+
+.otw-summary-table td {
+  white-space: nowrap;
+}
+
+.otw-summary-table tfoot {
+  font-weight: 800;
 }
 
 .otw-panel-label {

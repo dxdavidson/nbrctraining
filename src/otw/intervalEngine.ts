@@ -57,6 +57,7 @@ export function buildOtwSegments(intervals: Interval[]): OtwSegment[] {
   }
 
   if (segments.length === 0) throw new Error('This OTW workout has no usable intervals.')
+  if (segments[segments.length - 1].kind === 'recovery') segments.pop()
   return segments
 }
 

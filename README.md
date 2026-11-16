@@ -76,10 +76,12 @@ Open **On the Water** from the main navigation or directly at `/otw.html`. It is
 You can test the OTW display in Chrome or Edge without moving outdoors:
 
 1. Run the app locally and open `http://localhost:5173/otw.html`.
-2. Open DevTools → **Console** and run this before pressing **Start**:
+2. Open DevTools → **Console** and run this before pressing **Start**. Before pasting, set `multiplier` to 2 or 3 to simulate movement at 6 or 9 m/s instead of 3 m/s. This changes movement speed, not the workout timer. The app rejects GPS speeds above 12 m/s.
 
    ```js
    (() => {
+     const multiplier = 1 // Set to 2 or 3 for faster simulated movement.
+     const speedMps = 3 * multiplier
      const originalDescriptor = Object.getOwnPropertyDescriptor(navigator, 'geolocation')
      const timers = new Map()
      let nextId = 1
@@ -94,10 +96,10 @@ You can test the OTW display in Chrome or Edge without moving outdoors:
              const seconds = (Date.now() - startedAt) / 1000
              success({
                coords: {
-                 latitude: 51.5074 + (3 * seconds) / 111320,
+                 latitude: 51.5074 + (speedMps * seconds) / 111320,
                  longitude: -0.1278,
                  accuracy: 5,
-                 speed: 3,
+                 speed: speedMps,
                  heading: 0,
                  altitude: null,
                  altitudeAccuracy: null,
@@ -126,22 +128,22 @@ You can test the OTW display in Chrome or Edge without moving outdoors:
        delete window.stopOtwGpsSimulation
      }
 
-     console.log('OTW GPS simulation active: moving north at about 3 m/s.')
+     console.log(`OTW GPS simulation active: moving north at about ${speedMps} m/s.`)
    })()
    ```
 
-3. Press **Start**. The simulation updates location once per second at about 3 m/s. Tap **Stroke Rate** twice, about two seconds apart, to see a rate.
-4. To test distance-based workout intervals, choose a workout using the **Workout** button before starting. Time-based intervals advance without GPS.
+3. Press **Start**; the simulation updates location once per second. Tap **Stroke Rate** twice, about two seconds apart, to see a rate.
+4. To test distance-based workout intervals, choose a workout using the **Intervals** button before starting. Time-based intervals advance without GPS.
 
-Press **Stop** before running `stopOtwGpsSimulation()` in the Console. Refreshing the page also restores the browser's normal geolocation. If the database has no OTW workouts, Just Row can still be tested, but the workout list will be empty.
+Press **Stop** before running `stopOtwGpsSimulation()` in the Console. Refresh the page before pasting the simulation again with a different multiplier. Refreshing also restores the browser's normal geolocation. If the database has no OTW workouts, Just Row can still be tested, but the workout list will be empty.
 
-The phone-first OTW display keeps six large data fields in a two-column, three-row grid in portrait and a three-column, two-row grid in landscape. Landscape field text and padding scale to the available screen size. Metric labels sit at the top-left of each field and include their units. Start, Stop, and Reset controls stay at the bottom. Distance and elapsed time show session totals in Just Row and current-interval values in Workout mode; average pace follows the same scope. Pace is shown per 500 m, and time-based workout intervals show their remaining time as `mm:ss`. Tap the Stroke Rate field at each catch to record a stroke. On supported phones, install the app and launch it from the home screen to use standalone mode without the usual browser controls; a regular browser tab cannot hide them. The OTW page is a separately installable app ("NBRC On the Water", its own manifest `otw.webmanifest`) that launches `otw.html`; installing from the home page gives the main app instead, and both can be installed side by side.
+The phone-first OTW display keeps six large data fields in a two-column, three-row grid in portrait and a three-column, two-row grid in landscape. Landscape field text and padding scale to the available screen size. Metric labels sit at the top-left of each field and include their units. Start, Stop, and Reset controls stay at the bottom. Distance and elapsed time show session totals in Just Row and current-interval values in Intervals mode; average pace follows the same scope. Pace is shown per 500 m, and time-based workout intervals show their remaining time as `mm:ss`. Tap the Stroke Rate field at each catch to record a stroke. On supported phones, install the app and launch it from the home screen to use standalone mode without the usual browser controls; a regular browser tab cannot hide them. The OTW page is a separately installable app ("NBRC On the Water", its own manifest `otw.webmanifest`) that launches `otw.html`; installing from the home page gives the main app instead, and both can be installed side by side.
 
-The highlighted **Just Row**, **Race**, or **Workout** button shows the current mode; mode changes are disabled while recording. In **Race**, enter a positive distance in meters in the Remaining field before starting. Valid distances are saved on this device as they are entered; Reset or returning to Race restores the last saved value. Remaining counts down using GPS distance, turns red when the displayed distance reaches zero, and continues into negative values until Stop. In Just Row, Remaining is zero.
+The highlighted **Just Row**, **Race**, or **Intervals** button shows the current mode; mode changes are disabled while recording. Switching modes clears the displayed session data without deleting saved sessions; Intervals mode starts when a workout is loaded, not when the picker is opened. In **Race**, enter a positive distance in meters in the Remaining field before starting. Valid distances are saved on this device as they are entered; Reset or returning to Race restores the last saved value. Remaining counts down using GPS distance, turns red when the displayed distance reaches zero, and continues into negative values until Stop. In Just Row, Remaining is zero.
 
-The **Workout** button lists all `OTW` workouts, including those in unpublished plans and blocks. Filter the list by the work interval types: Distance, Time, Mixed, or None. An Invalid category appears if a workout has an unrecognized work interval type. Workouts with no intervals or invalid intervals cannot be started. Select a workout's description and press **Load Workout** to enter Workout mode and preview the first interval in Remaining. The top-left status shows the current work interval number or **Recovery**, and Remaining counts down the current work or recovery segment. Opening the page online downloads the workout catalogue and intervals into IndexedDB so they remain selectable offline. Interval changes advance automatically and trigger a beep/vibration when supported.
+The **Intervals** button lists all `OTW` workouts, including those in unpublished plans and blocks. Filter the list by the work interval types: Distance, Time, Mixed, or None. An Invalid category appears if a workout has an unrecognized work interval type. Workouts with no intervals or invalid intervals cannot be started. Select a workout's description and press **Load Workout** to enter Intervals mode and preview the first interval in Remaining. The top-left status shows the current work interval number, or the number of completed intervals during recovery. During recovery the Remaining field turns amber and shows **Next interval starts in**. The workout ends after the final work interval, without a final recovery. When a workout finishes or is stopped, a summary shows time, GPS distance, and pace for completed work intervals only, with totals excluding recovery and unfinished intervals. Opening the page online downloads the workout catalogue and intervals into IndexedDB so they remain selectable offline. Interval changes advance automatically and trigger a beep/vibration when supported.
 
-Use the top-right menu to browse session history and export any saved session as FIT, or access stroke and remote settings. Positions with accuracy worse than 25 m and implausible jumps are filtered; small movements accumulate until they exceed the GPS noise threshold, and speed is smoothed over recent valid samples. Session records are saved to IndexedDB while rowing. Pressing Stop saves the session, downloads a FIT file, and keeps the final readings visible. Start begins a new session; Reset clears the readings and discards an unfinished session. Open **History** to export a session again, delete one session with the trash button, or use **Delete all history**. History lives only on the phone (IndexedDB) and is never sent to the database. The FIT file includes 1 Hz records and a lap for each completed workout interval.
+Use the top-right menu to browse session history and export any saved session as FIT, or access stroke and remote settings. Positions with accuracy worse than 25 m and implausible jumps are filtered; small movements accumulate until they exceed the GPS noise threshold, and speed is smoothed over recent valid samples. Session records are saved to IndexedDB while rowing. Pressing Stop saves the session to History and keeps the final readings visible. Start begins a new session; Reset clears the readings and discards an unfinished session. Open **History** to export a session as FIT, delete one session with the trash button, or use **Delete all history**. History lives only on the phone (IndexedDB) and is never sent to the database. The FIT file includes 1 Hz records and a lap for each completed workout interval.
 
 The display uses Screen Wake Lock when available and a muted-video fallback otherwise. Bluetooth keyboard/media remotes act as HID key events; use **Learn** in Remote controls to map Start, Stop, Reset, and Stroke. On-screen Reset acts immediately; on the remote, hold Reset or confirm after a short press. Stroke-rate timeout defaults to 3 seconds (configurable from 2–10), the averaging window can be set to 4, 5, or 6 catch intervals, and the expected slowest rate (used for a timeout warning) can be adjusted from 16–22 spm.
 

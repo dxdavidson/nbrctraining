@@ -28,11 +28,11 @@ import { useScreenAwake } from './useScreenAwake'
 
 type AppMode = 'just-row' | 'workout' | 'race'
 
-const MODE_LABELS: Record<AppMode, string> = { 'just-row': 'Just Row', workout: 'Workout', race: 'Race' }
+const MODE_LABELS: Record<AppMode, string> = { 'just-row': 'Just Row', workout: 'Intervals', race: 'Race' }
 type SessionStatus = 'idle' | 'running' | 'resetting' | 'completed'
 type RemoteAction = 'toggle' | 'stop' | 'reset' | 'stroke'
 type RemoteMap = Record<RemoteAction, string>
-type OtwPanel = 'workout' | 'history' | 'settings' | 'remote' | null
+type OtwPanel = 'workout' | 'summary' | 'history' | 'settings' | 'remote' | null
 type WorkoutCategory = 'Distance' | 'Time' | 'Mixed' | 'None' | 'Invalid'
 
 const REMOTE_MAP_STORAGE_KEY = 'nbrctraining.otw.remoteMap'
@@ -190,13 +190,14 @@ export default function OtwApp() {
   const [workouts, setWorkouts] = useState<CachedOtwWorkout[]>([])
   const [workoutFilter, setWorkoutFilter] = useState<'All' | WorkoutCategory>('All')
   const [history, setHistory] = useState<OtwSession[]>([])
+  const [workoutSummary, setWorkoutSummary] = useState<OtwLap[]>([])
+  const [summaryIntervalCount, setSummaryIntervalCount] = useState(0)
   const [selectedWorkoutId, setSelectedWorkoutId] = useState('')
   const [pendingWorkoutId, setPendingWorkoutId] = useState('')
   const [catalogueMessage, setCatalogueMessage] = useState('Loading OTW workouts…')
   const [catalogueError, setCatalogueError] = useState<string | null>(null)
   const [gpsError, setGpsError] = useState<string | null>(null)
   const [storageError, setStorageError] = useState<string | null>(null)
-  const [exportError, setExportError] = useState<string | null>(null)
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [intervalError, setIntervalError] = useState<string | null>(null)
   const [learningAction, setLearningAction] = useState<RemoteAction | null>(null)
@@ -323,12 +324,29 @@ export default function OtwApp() {
   }, [persistSession])
 
   const finishSession = useCallback(async (finishedByEngine = false) => {
-    const current = sessionRef.current
+    let current = sessionRef.current
     if (!current || statusRef.current !== 'running') return
 
     const elapsed = elapsedNow()
     const now = Date.now()
     const distance = gpsMetricsRef.current.distanceMeters
+    if (current.mode === 'workout' && !finishedByEngine) {
+      const previous = progressRef.current
+      const next = advanceInterval(segmentsRef.current, previous, elapsed, distance)
+      if (next.changed) {
+        closeLap(segmentsRef.current[previous.index].label, elapsed, distance)
+        progressRef.current = next
+        setProgress(next)
+        current = sessionRef.current
+        if (!current) return
+      }
+    }
+    if (current.mode === 'workout') {
+      setWorkoutSummary(current.laps.filter((_, index) => segmentsRef.current[index]?.kind === 'work'))
+      setSummaryIntervalCount(segmentsRef.current.filter((segment) => segment.kind === 'work').length)
+      setMenuOpen(false)
+      setActivePanel('summary')
+    }
     let laps = current.laps
     if (current.mode !== 'workout' && laps.length === 0) {
       laps = [{
@@ -388,16 +406,32 @@ export default function OtwApp() {
     setSession(completed)
     queueStorageWrite(() => appendOtwRecord(current.id, sequence, finalRecord))
     queueStorageWrite(() => saveOtwSession(completed))
-    if (!finishedByEngine) {
-      try {
-        downloadFitSession(completed)
-        setExportError(null)
-      } catch (error) {
-        setExportError(`FIT download failed: ${errorMessage(error)}. Export the session from History.`)
-      }
-    }
     await storageWriteQueueRef.current
-  }, [elapsedNow, queueStorageWrite, raceStartDistance, saveRaceDistance, setSessionStatus])
+  }, [closeLap, elapsedNow, queueStorageWrite, raceStartDistance, saveRaceDistance, setSessionStatus])
+
+  const clearSessionDisplay = useCallback(() => {
+    sessionRef.current = null
+    recordsRef.current = []
+    setSession(null)
+    setSessionStatus('idle')
+    elapsedBeforeRunRef.current = 0
+    setElapsedSeconds(0)
+    gpsRef.current.reset()
+    lastGpsAtRef.current = null
+    gpsMetricsRef.current = { distanceMeters: 0, speedMps: null }
+    setGpsMetrics(gpsMetricsRef.current)
+    positionRef.current = null
+    setGpsError(null)
+    setCadence(null)
+    strokeTrackerRef.current?.reset()
+    progressRef.current = INITIAL_INTERVAL_PROGRESS
+    setProgress(INITIAL_INTERVAL_PROGRESS)
+    segmentsRef.current = []
+    setActiveSegments([])
+    lapStartedAtRef.current = 0
+    lapStartDistanceRef.current = 0
+    setRaceStartDistance(null)
+  }, [setSessionStatus])
 
   const resetSession = useCallback(async () => {
     if (startInProgressRef.current || statusRef.current === 'resetting') return
@@ -424,31 +458,10 @@ export default function OtwApp() {
       }
     }
 
-    sessionRef.current = null
-    recordsRef.current = []
-    setSession(null)
-    setSessionStatus('idle')
-    elapsedBeforeRunRef.current = 0
-    setElapsedSeconds(0)
-    gpsRef.current.reset()
-    lastGpsAtRef.current = null
-    gpsMetricsRef.current = { distanceMeters: 0, speedMps: null }
-    setGpsMetrics(gpsMetricsRef.current)
-    positionRef.current = null
-    setGpsError(null)
-    setCadence(null)
-    strokeTrackerRef.current?.reset()
-    progressRef.current = INITIAL_INTERVAL_PROGRESS
-    setProgress(INITIAL_INTERVAL_PROGRESS)
-    segmentsRef.current = []
-    setActiveSegments([])
-    lapStartedAtRef.current = 0
-    lapStartDistanceRef.current = 0
+    clearSessionDisplay()
     setStorageError(null)
-    setExportError(null)
     setRaceDistance(savedRaceDistance.value)
-    setRaceStartDistance(null)
-  }, [elapsedNow, savedRaceDistance.value, setSessionStatus])
+  }, [clearSessionDisplay, elapsedNow, savedRaceDistance.value, setSessionStatus])
 
   const askToReset = useCallback(() => {
     if (window.confirm('Reset this OTW session? An unfinished recording will be discarded.')) {
@@ -460,7 +473,7 @@ export default function OtwApp() {
     if (statusRef.current !== 'idle' && statusRef.current !== 'completed') return
 
     if (mode === 'workout' && !selectedWorkout) {
-      setIntervalError('Choose an OTW workout before starting workout mode.')
+      setIntervalError('Choose an OTW workout before starting Intervals mode.')
       return
     }
     if (mode === 'workout' && selectedSegments.error) {
@@ -504,7 +517,6 @@ export default function OtwApp() {
     }
 
     setStorageError(null)
-    setExportError(null)
     setGpsError(null)
     setIntervalError(null)
     gpsRef.current.reset()
@@ -785,6 +797,7 @@ export default function OtwApp() {
   const workoutSegments = hasWorkoutSession ? activeSegments : selectedSegments.segments
   const workoutIndex = hasWorkoutSession ? progress.index : 0
   const currentSegment = mode === 'workout' ? workoutSegments[workoutIndex] : undefined
+  const isRecovery = currentSegment?.kind === 'recovery'
   const remaining = currentSegment
     ? hasWorkoutSession
       ? intervalRemaining(
@@ -823,21 +836,26 @@ export default function OtwApp() {
     : null
   const raceTargetReached = raceRemaining !== null && Math.round(raceRemaining) <= 0
   const canChangeMode = canStart && !starting
+  const workIntervalNumber = workoutSegments.slice(0, workoutIndex + 1).filter((segment) => segment.kind === 'work').length
+  const workIntervalCount = workoutSegments.filter((segment) => segment.kind === 'work').length
   const workoutStatus = currentSegment
     ? currentSegment.kind === 'recovery'
-      ? 'Recovery'
-      : `Interval ${workoutSegments.slice(0, workoutIndex + 1).filter((segment) => segment.kind === 'work').length} of ${workoutSegments.filter((segment) => segment.kind === 'work').length}`
+      ? `Recovery, ${workIntervalNumber} of ${workIntervalCount} intervals completed`
+      : `Interval ${workIntervalNumber} of ${workIntervalCount}`
     : null
   const statusLabel = status === 'resetting'
     ? 'Resetting'
     : workoutStatus ?? (status === 'running' ? 'Recording' : status === 'completed' ? 'Complete' : '')
+  const summaryTime = workoutSummary.reduce((total, lap) => total + lap.endElapsedSeconds - lap.startElapsedSeconds, 0)
+  const summaryDistance = workoutSummary.reduce((total, lap) => total + lap.endDistanceMeters - lap.startDistanceMeters, 0)
   const openPanel = (panel: Exclude<OtwPanel, null>) => {
     setMenuOpen(false)
     setActivePanel(panel)
     if (panel === 'history') {
       setHistoryLoading(true)
       setHistoryError(null)
-      void getCompletedOtwSessions()
+      void storageWriteQueueRef.current
+        .then(() => getCompletedOtwSessions())
         .then(setHistory)
         .catch((error: unknown) => setHistoryError(errorMessage(error)))
         .finally(() => setHistoryLoading(false))
@@ -853,6 +871,7 @@ export default function OtwApp() {
       setActivePanel('workout')
       return
     }
+    if (nextMode !== mode) clearSessionDisplay()
     if (nextMode !== mode || (nextMode === 'race' && status === 'completed')) {
       setRaceStartDistance(null)
       if (nextMode === 'race') setRaceDistance(savedRaceDistance.value)
@@ -868,6 +887,7 @@ export default function OtwApp() {
       setIntervalError(errorMessage(error))
       return
     }
+    if (mode !== 'workout') clearSessionDisplay()
     setSelectedWorkoutId(workout.id)
     setMode('workout')
     setRaceStartDistance(null)
@@ -883,6 +903,15 @@ export default function OtwApp() {
     void deleteOtwSession(id)
       .then(() => setHistory((items) => items.filter((item) => item.id !== id)))
       .catch((error: unknown) => setHistoryError(errorMessage(error)))
+  }
+
+  const exportHistorySession = (savedSession: OtwSession) => {
+    try {
+      downloadFitSession(savedSession)
+      setHistoryError(null)
+    } catch (error) {
+      setHistoryError(`FIT download failed: ${errorMessage(error)}`)
+    }
   }
 
   const deleteAllHistory = () => {
@@ -951,8 +980,10 @@ export default function OtwApp() {
             <span className="otw-metric-label">Avg Pace (min / 500 m)</span>
             <strong className="otw-metric-value">{formatPacePer500m(averageSpeed)}</strong>
           </div>
-          <div className={`otw-metric${raceTargetReached ? ' otw-metric-race-complete' : ''}`}>
-            <span className="otw-metric-label">Remaining</span>
+          <div className={`otw-metric${raceTargetReached ? ' otw-metric-race-complete' : ''}${isRecovery ? ' otw-metric-recovery' : ''}`}>
+            <span className="otw-metric-label">
+              {isRecovery ? 'Next interval starts in' : 'Remaining'}
+            </span>
             {mode === 'race' && raceRemaining === null ? (
               <>
                 <input
@@ -1005,7 +1036,6 @@ export default function OtwApp() {
           {gpsUnsupported && status === 'running' && <p>GPS is not supported in this browser.</p>}
           {gpsError && <p>{gpsError}</p>}
           {storageError && <p className="otw-notice-error">Recording storage error: {storageError}</p>}
-          {exportError && <p className="otw-notice-error" role="alert">{exportError}</p>}
           {savedRaceDistance.error && <p className="otw-notice-error" role="alert">{savedRaceDistance.error}</p>}
           {wakeMessage && <p>{wakeMessage}</p>}
           {audioWarning && <p>{audioWarning}</p>}
@@ -1036,7 +1066,7 @@ export default function OtwApp() {
             <section className="otw-dialog" role="dialog" aria-modal="true" aria-labelledby="otw-dialog-title">
               <header className="otw-dialog-header">
                 <h2 id="otw-dialog-title">
-                  {activePanel === 'workout' ? 'OTW Workouts' : activePanel === 'history' ? 'History' : activePanel === 'settings' ? 'Settings' : 'Remote controls'}
+                  {activePanel === 'workout' ? 'OTW Workouts' : activePanel === 'summary' ? 'Workout summary' : activePanel === 'history' ? 'History' : activePanel === 'settings' ? 'Settings' : 'Remote controls'}
                 </h2>
                 <button className="otw-dialog-close" type="button" aria-label="Close" onClick={() => setActivePanel(null)}>×</button>
               </header>
@@ -1102,6 +1132,41 @@ export default function OtwApp() {
                 </div>
               )}
 
+              {activePanel === 'summary' && (
+                <div className="otw-panel-content">
+                  {workoutSummary.length === 0 && <p className="otw-note">No intervals completed.</p>}
+                  <div className="otw-summary-table-wrap">
+                    <table className="otw-summary-table">
+                      <thead>
+                        <tr><th scope="col">Interval</th><th scope="col">Time</th><th scope="col">Distance (m)</th><th scope="col">Pace (/500 m)</th></tr>
+                      </thead>
+                      <tbody>
+                        {workoutSummary.map((lap, index) => {
+                          const time = lap.endElapsedSeconds - lap.startElapsedSeconds
+                          const distance = lap.endDistanceMeters - lap.startDistanceMeters
+                          return (
+                            <tr key={index}>
+                              <th scope="row">{index + 1}/{summaryIntervalCount}</th>
+                              <td>{formatElapsedClock(time)}</td>
+                              <td>{formatDistance(distance)}</td>
+                              <td>{formatPacePer500m(time > 0 ? distance / time : null)}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <th scope="row">Total</th>
+                          <td>{formatElapsedClock(summaryTime)}</td>
+                          <td>{formatDistance(summaryDistance)}</td>
+                          <td>{formatPacePer500m(summaryTime > 0 ? summaryDistance / summaryTime : null)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               {activePanel === 'history' && (
                 <div className="otw-panel-content">
                   {historyLoading && <p className="otw-note">Loading saved sessions…</p>}
@@ -1117,7 +1182,7 @@ export default function OtwApp() {
                           <span>{formatElapsed(savedSession.elapsedSeconds)}</span>
                         </div>
                         <div className="otw-history-actions">
-                          <button className="otw-panel-button" type="button" onClick={() => downloadFitSession(savedSession)}>
+                          <button className="otw-panel-button" type="button" onClick={() => exportHistorySession(savedSession)}>
                             Export FIT
                           </button>
                           <button

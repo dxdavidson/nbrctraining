@@ -20,7 +20,7 @@ const interval: Interval = {
 describe('OTW interval engine', () => {
   it('expands repeated mixed work and recovery segments', () => {
     const segments = buildOtwSegments([
-      { ...interval, interval_code: '2', interval_order: 2, repeat_count: 1, work_kind: 'distance', work_value: 500, recovery_kind: null, recovery_value: null },
+      { ...interval, interval_code: '2', interval_order: 2, repeat_count: 1, work_kind: 'distance', work_value: 500 },
       interval,
     ])
 
@@ -33,6 +33,11 @@ describe('OTW interval engine', () => {
     ])
   })
 
+  it('omits recovery after a single final work interval', () => {
+    const segments = buildOtwSegments([{ ...interval, repeat_count: 1 }])
+    expect(segments.map(({ kind }) => kind)).toEqual(['work'])
+  })
+
   it('advances time and distance segments and marks completion', () => {
     const segments = buildOtwSegments([interval])
     const initial = { index: 0, segmentStartedAt: 0, segmentStartDistance: 0, finished: false, changed: false }
@@ -42,10 +47,8 @@ describe('OTW interval engine', () => {
     const secondWork = advanceInterval(segments, recovery, 61, 100)
     expect(secondWork).toMatchObject({ index: 2, changed: true, finished: false })
 
-    const complete = advanceInterval(segments, secondWork, 121, 100)
-    expect(complete).toMatchObject({ index: 3, changed: true, finished: false })
-    expect(advanceInterval(segments, complete, 122, 200)).toMatchObject({
-      index: 4,
+    expect(advanceInterval(segments, secondWork, 121, 100)).toMatchObject({
+      index: 3,
       changed: true,
       finished: true,
     })
