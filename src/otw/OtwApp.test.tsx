@@ -94,6 +94,7 @@ describe('OtwApp', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     if (originalGeolocation) Object.defineProperty(navigator, 'geolocation', originalGeolocation)
     else Reflect.deleteProperty(navigator, 'geolocation')
     vi.restoreAllMocks()
@@ -111,14 +112,13 @@ describe('OtwApp', () => {
     expect(container.querySelector('.otw-metric-value')?.textContent).toBe('0')
     expect(screen.getByText('Elapsed Time')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Stroke rate unavailable. Tap to record a catch.' })).toBeDisabled()
-    expect(screen.getAllByRole('button', { name: /^(Start|Stop|Reset)$/ })).toHaveLength(3)
+    expect(screen.getAllByRole('button', { name: /^(Start|Stop|Reset)$/ })).toHaveLength(2)
 
     await user.click(screen.getByRole('button', { name: 'Start' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled())
-    expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Start' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reset' })).toBeDisabled()
     expect(screen.queryByRole('button', { name: /^(Pause|Resume)$/ })).not.toBeInTheDocument()
-    fireEvent.keyDown(window, { code: 'Space', key: ' ' })
-    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
     await user.click(screen.getByRole('button', { name: 'Stop' }))
 
     await waitFor(() => expect(mocks.saveOtwSession).toHaveBeenCalledWith(expect.objectContaining({ endedAt: expect.any(String) })))
@@ -132,6 +132,104 @@ describe('OtwApp', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled())
     expect(mocks.createOtwSession).toHaveBeenCalledTimes(2)
     expect(container.querySelector('.otw-metric-value')?.textContent).toBe('0')
+  })
+
+  it('updates average pace every five seconds while current pace stays responsive', async () => {
+    vi.useFakeTimers()
+    try {
+      let onPosition: PositionCallback | undefined
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          watchPosition: (callback: PositionCallback) => { onPosition = callback; return 1 },
+          clearWatch: vi.fn(),
+        },
+      })
+      render(<OtwApp />)
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Start' })) })
+      expect(onPosition).toBeDefined()
+      const metricValue = (label: string) => screen.getByText(label).parentElement?.querySelector('strong')
+      const sendPosition = (meters: number) => act(() => onPosition?.({
+        coords: {
+          latitude: 51 + meters / 111_195, longitude: 0, accuracy: 4, speed: null,
+          heading: null, altitude: null, altitudeAccuracy: null, toJSON: () => ({}),
+        },
+        timestamp: Date.now(),
+        toJSON: () => ({}),
+      }))
+      sendPosition(0)
+      act(() => { vi.advanceTimersByTime(1000) })
+      sendPosition(6)
+      expect(metricValue('Pace (min / 500 m)')).toHaveTextContent('01:23')
+      expect(metricValue('Avg Pace (min / 500 m)')).toHaveTextContent('--:--')
+
+      act(() => { vi.advanceTimersByTime(3000) })
+      sendPosition(15)
+      expect(metricValue('Pace (min / 500 m)')).toHaveTextContent('01:51')
+      expect(metricValue('Avg Pace (min / 500 m)')).toHaveTextContent('--:--')
+      act(() => { vi.advanceTimersByTime(1000) })
+      expect(metricValue('Avg Pace (min / 500 m)')).toHaveTextContent('02:47')
+
+      act(() => { vi.advanceTimersByTime(1000) })
+      sendPosition(27)
+      expect(metricValue('Pace (min / 500 m)')).toHaveTextContent('01:40')
+      expect(metricValue('Avg Pace (min / 500 m)')).toHaveTextContent('02:47')
+      act(() => { vi.advanceTimersByTime(4000) })
+      expect(metricValue('Avg Pace (min / 500 m)')).toHaveTextContent('03:05')
+      act(() => { vi.advanceTimersByTime(1000) })
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Stop' })) })
+      expect(metricValue('Avg Pace (min / 500 m)')).toHaveTextContent('03:24')
+      fireEvent.click(screen.getByRole('button', { name: 'Race' }))
+      expect(metricValue('Avg Pace (min / 500 m)')).toHaveTextContent('--:--')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('clears the sampled average at work and recovery boundaries', async () => {
+    vi.useFakeTimers()
+    let unmount: (() => void) | undefined
+    try {
+      let onPosition: PositionCallback | undefined
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          watchPosition: (callback: PositionCallback) => { onPosition = callback; return 1 },
+          clearWatch: vi.fn(),
+        },
+      })
+      mocks.fetchOtwWorkouts.mockResolvedValueOnce([workout('time-1', 'TIME', 'Interval average', 'time', 6)])
+      unmount = render(<OtwApp />).unmount
+      await act(async () => {})
+      fireEvent.click(screen.getByRole('button', { name: 'Intervals' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Interval average' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Load Workout' }))
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Start' })) })
+      expect(onPosition).toBeDefined()
+      const sendPosition = (meters: number) => act(() => onPosition?.({
+        coords: {
+          latitude: 51 + meters / 111_195, longitude: 0, accuracy: 4, speed: null,
+          heading: null, altitude: null, altitudeAccuracy: null, toJSON: () => ({}),
+        },
+        timestamp: Date.now(),
+        toJSON: () => ({}),
+      }))
+      const average = () => screen.getByText('Avg Pace (min / 500 m)').parentElement?.querySelector('strong')
+      sendPosition(0)
+      act(() => { vi.advanceTimersByTime(4000) })
+      sendPosition(12)
+      act(() => { vi.advanceTimersByTime(1000) })
+      expect(average()).toHaveTextContent('03:28')
+      act(() => { vi.advanceTimersByTime(1000) })
+      expect(screen.getByText('Recovery, 1 of 2 intervals completed')).toBeInTheDocument()
+      expect(average()).toHaveTextContent('--:--')
+      act(() => { vi.advanceTimersByTime(2000) })
+      expect(screen.getByText('Interval 2 of 2')).toBeInTheDocument()
+      expect(average()).toHaveTextContent('--:--')
+    } finally {
+      unmount?.()
+      vi.useRealTimers()
+    }
   })
 
   it('shows mode buttons in the header, not the menu, and locks them during a session', async () => {
@@ -520,7 +618,7 @@ describe('OtwApp', () => {
     expect(await screen.findByText('Interval 3 of 3')).toBeInTheDocument()
     now += 3000
     expect(await screen.findByRole('dialog', { name: 'Workout summary' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Stop' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled()
   })
 
   it('summarizes completed work intervals without recovery when a workout finishes', async () => {
@@ -565,7 +663,7 @@ describe('OtwApp', () => {
     const rows = within(dialog).getAllByRole('row')
     expect(rows).toHaveLength(4)
     expect(within(dialog).queryByText(/Completed work intervals only/)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Stop' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled()
     expect(Array.from(rows[1].children, (cell) => cell.textContent)).toEqual(['1/2', '00:00:03', '6', '04:10'])
     expect(Array.from(rows[2].children, (cell) => cell.textContent)).toEqual(['2/2', '00:00:03', '9', '02:47'])
     expect(Array.from(rows[3].children, (cell) => cell.textContent)).toEqual(['Total', '00:00:06', '15', '03:20'])
@@ -701,7 +799,7 @@ describe('OtwApp', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'Workout summary' })
     expect(within(dialog).getByRole('row', { name: /^1\/1/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Stop' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled()
   })
 
   it('shows older cached workouts offline', async () => {
@@ -735,18 +833,211 @@ describe('OtwApp', () => {
     expect(screen.getByRole('button', { name: 'Just Row' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('discards an unfinished session on reset without confirmation or downloading it', async () => {
+  it('requires stopping before reset and preserves the saved session', async () => {
     const user = userEvent.setup()
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     render(<OtwApp />)
 
     await user.click(screen.getByRole('button', { name: 'Start' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled())
+    expect(screen.getByRole('button', { name: 'Reset' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
+    expect(mocks.deleteOtwSession).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Stop' }))
     await user.click(screen.getByRole('button', { name: 'Reset' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled())
     expect(confirm).not.toHaveBeenCalled()
-    expect(mocks.deleteOtwSession).toHaveBeenCalledWith('session-1')
+    expect(mocks.deleteOtwSession).not.toHaveBeenCalled()
+    await waitFor(() => expect(mocks.saveOtwSession).toHaveBeenCalledWith(expect.objectContaining({ endedAt: expect.any(String) })))
     expect(mocks.downloadFitSession).not.toHaveBeenCalled()
+  })
+
+  it.each(['Space', 'Escape'])('uses %s for short start/stop presses and a stopped-only 3 second reset', async (code) => {
+    vi.useFakeTimers()
+    render(<OtwApp />)
+    await act(async () => {})
+    fireEvent.keyDown(window, { code })
+    expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled()
+    await act(async () => { fireEvent.keyUp(window, { code }) })
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Reset' })).toBeDisabled()
+
+    fireEvent.keyDown(window, { code })
+    await act(async () => { vi.advanceTimersByTime(3000) })
+    expect(screen.getByText('Stop before resetting.')).toBeInTheDocument()
+    await act(async () => { fireEvent.keyUp(window, { code }) })
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
+    expect(mocks.deleteOtwSession).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(window, { code })
+    await act(async () => { fireEvent.keyUp(window, { code }) })
+    expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled()
+    expect(mocks.saveOtwSession).toHaveBeenCalledWith(expect.objectContaining({ endedAt: expect.any(String) }))
+    expect(screen.getByText('Elapsed Time').parentElement?.querySelector('strong')).toHaveTextContent('00:00:03')
+
+    fireEvent.keyDown(window, { code })
+    act(() => { vi.advanceTimersByTime(2999) })
+    expect(screen.getByText('Elapsed Time').parentElement?.querySelector('strong')).toHaveTextContent('00:00:03')
+    await act(async () => { vi.advanceTimersByTime(1) })
+    await act(async () => { fireEvent.keyUp(window, { code }) })
+    expect(screen.getByText('Elapsed Time').parentElement?.querySelector('strong')).toHaveTextContent('00:00:00')
+    expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled()
+    expect(mocks.createOtwSession).toHaveBeenCalledTimes(1)
+    expect(mocks.deleteOtwSession).not.toHaveBeenCalled()
+  })
+
+  it('does not reset or restart when a hold begins while recording and the session stops', async () => {
+    vi.useFakeTimers()
+    render(<OtwApp />)
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Start' })) })
+    fireEvent.keyDown(window, { code: 'Space' })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Stop' })) })
+    await act(async () => { vi.advanceTimersByTime(3000) })
+    await act(async () => { fireEvent.keyUp(window, { code: 'Space' }) })
+    expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled()
+    expect(mocks.createOtwSession).toHaveBeenCalledTimes(1)
+    expect(mocks.deleteOtwSession).not.toHaveBeenCalled()
+    expect(mocks.saveOtwSession).toHaveBeenCalledWith(expect.objectContaining({ endedAt: expect.any(String) }))
+  })
+
+  it('prevents reset and remote toggles while a session is starting', async () => {
+    vi.useFakeTimers()
+    let finishStart: () => void = () => {}
+    mocks.saveOtwSession.mockImplementationOnce(() => new Promise<void>((resolve) => { finishStart = resolve }))
+    render(<OtwApp />)
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Start' })) })
+    expect(screen.getByRole('button', { name: 'Reset' })).toBeDisabled()
+    fireEvent.keyDown(window, { code: 'Space' })
+    await act(async () => { vi.advanceTimersByTime(3000) })
+    await act(async () => { finishStart() })
+    await act(async () => { fireEvent.keyUp(window, { code: 'Space' }) })
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
+    expect(mocks.createOtwSession).toHaveBeenCalledTimes(1)
+    expect(mocks.deleteOtwSession).not.toHaveBeenCalled()
+  })
+
+  it('ignores repeated and simultaneous button presses and cancels holds on blur', async () => {
+    vi.useFakeTimers()
+    render(<OtwApp />)
+    await act(async () => {})
+    fireEvent.keyDown(window, { code: 'Space' })
+    fireEvent.keyDown(window, { code: 'Space', repeat: true })
+    fireEvent.keyDown(window, { code: 'Escape' })
+    await act(async () => { fireEvent.keyUp(window, { code: 'Escape' }) })
+    expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled()
+    await act(async () => { fireEvent.keyUp(window, { code: 'Space' }) })
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
+    expect(mocks.createOtwSession).toHaveBeenCalledTimes(1)
+    fireEvent.keyDown(window, { code: 'Escape' })
+    fireEvent.blur(window)
+    await act(async () => { vi.advanceTimersByTime(3000) })
+    await act(async () => { fireEvent.keyUp(window, { code: 'Escape' }) })
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
+    expect(mocks.deleteOtwSession).not.toHaveBeenCalled()
+  })
+
+  it('cancels a press released in an editable field or interrupted by another session', async () => {
+    vi.useFakeTimers()
+    render(<OtwApp />)
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Race' }))
+    fireEvent.keyDown(window, { code: 'Space' })
+    fireEvent.keyUp(screen.getByRole('spinbutton', { name: 'Race distance (meters)' }), { code: 'Space' })
+    await act(async () => { vi.advanceTimersByTime(3000) })
+    expect(mocks.createOtwSession).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Just Row' }))
+    fireEvent.keyDown(window, { code: 'Space' })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Start' })) })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Stop' })) })
+    await act(async () => { vi.advanceTimersByTime(3000) })
+    await act(async () => { fireEvent.keyUp(window, { code: 'Space' }) })
+    expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled()
+    expect(mocks.createOtwSession).toHaveBeenCalledTimes(1)
+    expect(mocks.deleteOtwSession).not.toHaveBeenCalled()
+  })
+
+  it('closes the workout summary before a remote restart or reset', async () => {
+    vi.useFakeTimers()
+    mocks.fetchOtwWorkouts.mockResolvedValueOnce([workout('time-1', 'TIME', 'Remote workout', 'time', 30)])
+    render(<OtwApp />)
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Intervals' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remote workout' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Load Workout' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Start' })) })
+    fireEvent.keyDown(window, { code: 'Space' })
+    await act(async () => { fireEvent.keyUp(window, { code: 'Space' }) })
+    expect(screen.getByRole('dialog', { name: 'Workout summary' })).toBeInTheDocument()
+    act(() => { vi.advanceTimersByTime(350) })
+    fireEvent.keyDown(window, { code: 'Escape' })
+    await act(async () => { fireEvent.keyUp(window, { code: 'Escape' }) })
+    expect(screen.queryByRole('dialog', { name: 'Workout summary' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Stop' })) })
+    expect(screen.getByRole('dialog', { name: 'Workout summary' })).toBeInTheDocument()
+    fireEvent.keyDown(window, { code: 'Space' })
+    await act(async () => { vi.advanceTimersByTime(3000) })
+    await act(async () => { fireEvent.keyUp(window, { code: 'Space' }) })
+    expect(screen.queryByRole('dialog', { name: 'Workout summary' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled()
+    expect(mocks.createOtwSession).toHaveBeenCalledTimes(2)
+    expect(mocks.deleteOtwSession).not.toHaveBeenCalled()
+  })
+
+  it('does not restart or reset if a workout finishes during a remote hold', async () => {
+    vi.useFakeTimers()
+    mocks.fetchOtwWorkouts.mockResolvedValueOnce([workout('time-1', 'TIME', 'Short remote workout', 'time', 1, 1)])
+    render(<OtwApp />)
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Intervals' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Short remote workout' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Load Workout' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Start' })) })
+    fireEvent.keyDown(window, { code: 'Space' })
+    await act(async () => { vi.advanceTimersByTime(1250) })
+    expect(screen.getByRole('dialog', { name: 'Workout summary' })).toBeInTheDocument()
+    await act(async () => { vi.advanceTimersByTime(2000) })
+    await act(async () => { fireEvent.keyUp(window, { code: 'Space' }) })
+    expect(screen.getByRole('dialog', { name: 'Workout summary' })).toBeInTheDocument()
+    expect(mocks.createOtwSession).toHaveBeenCalledTimes(1)
+    expect(mocks.deleteOtwSession).not.toHaveBeenCalled()
+  })
+
+  it.each(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'])('records strokes with %s', async (code) => {
+    vi.useFakeTimers()
+    render(<OtwApp />)
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Start' })) })
+    fireEvent.keyDown(window, { code })
+    fireEvent.keyDown(window, { code, repeat: true })
+    fireEvent.keyUp(window, { code })
+    act(() => { vi.advanceTimersByTime(1000) })
+    fireEvent.keyDown(window, { code })
+    fireEvent.keyUp(window, { code })
+    expect(screen.getByRole('button', { name: /Stroke rate 60 strokes per minute/ })).toBeInTheDocument()
+  })
+
+  it('migrates saved remote keys and rejects conflicting learned assignments', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem('nbrctraining.otw.remoteMap', JSON.stringify({
+      toggle: 'KeyQ', stop: 'KeyW', reset: 'KeyR', stroke: 'ArrowDown',
+    }))
+    render(<OtwApp />)
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(screen.getByRole('button', { name: 'Remote controls' }))
+    expect(screen.getByRole('button', { name: 'Learn Button A · KeyQ' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Learn Button B · KeyW' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Learn D-pad Up · ArrowDown' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Learn D-pad Down · Not assigned' }))
+    fireEvent.keyDown(window, { code: 'ArrowLeft' })
+    expect(screen.getByRole('alert')).toHaveTextContent('D-pad Left')
+    await user.click(screen.getByRole('button', { name: 'Learn D-pad Down · Not assigned' }))
+    fireEvent.keyDown(window, { code: 'ArrowUp' })
+    expect(screen.getByRole('button', { name: 'Learn D-pad Down · ArrowUp' })).toBeInTheDocument()
+    expect(JSON.parse(window.localStorage.getItem('nbrctraining.otw.remoteMap') ?? '{}')).toEqual({
+      buttonA: 'KeyQ', buttonB: 'KeyW', up: 'ArrowDown', down: 'ArrowUp', left: 'ArrowLeft', right: 'ArrowRight',
+    })
   })
 
   it('waits for the stopped session to be saved before loading History', async () => {

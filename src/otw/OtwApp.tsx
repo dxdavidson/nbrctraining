@@ -30,7 +30,7 @@ type AppMode = 'just-row' | 'workout' | 'race'
 
 const MODE_LABELS: Record<AppMode, string> = { 'just-row': 'Just Row', workout: 'Intervals', race: 'Race' }
 type SessionStatus = 'idle' | 'running' | 'resetting' | 'completed'
-type RemoteAction = 'toggle' | 'stop' | 'reset' | 'stroke'
+type RemoteAction = 'buttonA' | 'buttonB' | 'up' | 'down' | 'left' | 'right'
 type RemoteMap = Record<RemoteAction, string>
 type OtwPanel = 'workout' | 'summary' | 'history' | 'settings' | 'remote' | null
 type WorkoutCategory = 'Distance' | 'Time' | 'Mixed' | 'None' | 'Invalid'
@@ -39,16 +39,20 @@ const REMOTE_MAP_STORAGE_KEY = 'nbrctraining.otw.remoteMap'
 const STROKE_SETTINGS_STORAGE_KEY = 'nbrctraining.otw.strokeSettings'
 const RACE_DISTANCE_STORAGE_KEY = 'nbrctraining.otw.raceDistance'
 const DEFAULT_REMOTE_MAP: RemoteMap = {
-  toggle: 'Space',
-  stop: 'Escape',
-  reset: 'KeyR',
-  stroke: 'Enter',
+  buttonA: 'Space',
+  buttonB: 'Escape',
+  up: 'ArrowUp',
+  down: 'ArrowDown',
+  left: 'ArrowLeft',
+  right: 'ArrowRight',
 }
 const ACTION_LABELS: Record<RemoteAction, string> = {
-  toggle: 'Start',
-  stop: 'Stop',
-  reset: 'Reset',
-  stroke: 'Stroke',
+  buttonA: 'Button A',
+  buttonB: 'Button B',
+  up: 'D-pad Up',
+  down: 'D-pad Down',
+  left: 'D-pad Left',
+  right: 'D-pad Right',
 }
 const INITIAL_INTERVAL_PROGRESS: IntervalProgress = {
   index: 0,
@@ -90,13 +94,38 @@ function loadRemoteMap(): RemoteMap {
     const saved = window.localStorage.getItem(REMOTE_MAP_STORAGE_KEY)
     if (!saved) return DEFAULT_REMOTE_MAP
     const parsed: unknown = JSON.parse(saved)
-    if (
-      typeof parsed === 'object' &&
-      parsed !== null &&
-      ['toggle', 'stop', 'reset', 'stroke'].every((key) => typeof (parsed as Record<string, unknown>)[key] === 'string')
-    ) {
-      return parsed as RemoteMap
+    if (typeof parsed === 'object' && parsed !== null) {
+      const values = parsed as Record<string, unknown>
+      if (
+        typeof values.buttonA === 'string' && typeof values.buttonB === 'string' &&
+        typeof values.up === 'string' && typeof values.down === 'string' &&
+        typeof values.left === 'string' && typeof values.right === 'string'
+      ) {
+        const map = { buttonA: values.buttonA, buttonB: values.buttonB, up: values.up, down: values.down, left: values.left, right: values.right }
+        const assigned = Object.values(map).filter(Boolean)
+        if (new Set(assigned).size === assigned.length) return map
+      }
+      if (
+        typeof values.toggle === 'string' && typeof values.stop === 'string' &&
+        typeof values.reset === 'string' && typeof values.stroke === 'string'
+      ) {
+        const used = new Set<string>()
+        const assign = (key: string) => {
+          if (!key || used.has(key)) return ''
+          used.add(key)
+          return key
+        }
+        return {
+          buttonA: assign(values.toggle),
+          buttonB: assign(values.stop),
+          up: assign(values.stroke),
+          down: assign(DEFAULT_REMOTE_MAP.down),
+          left: assign(DEFAULT_REMOTE_MAP.left),
+          right: assign(DEFAULT_REMOTE_MAP.right),
+        }
+      }
     }
+    console.error('Ignoring invalid saved OTW remote map.')
   } catch (error) {
     console.error('Unable to read the saved OTW remote map.', error)
   }
@@ -179,6 +208,32 @@ function workoutCategory(workout: CachedOtwWorkout): WorkoutCategory {
   return kinds.has('distance') ? 'Distance' : 'Time'
 }
 
+function AveragePace({ speedMps, distance, segmentStartedAt, elapsedNow, running }: {
+  speedMps: number | null
+  distance: number
+  segmentStartedAt: number
+  elapsedNow: () => number
+  running: boolean
+}) {
+  const [displayedSpeed, setDisplayedSpeed] = useState(speedMps)
+  const distanceRef = useRef(distance)
+
+  useEffect(() => {
+    distanceRef.current = distance
+  }, [distance])
+
+  useEffect(() => {
+    if (!running) return
+    const timer = window.setInterval(() => {
+      const elapsed = elapsedNow() - segmentStartedAt
+      setDisplayedSpeed(elapsed > 0 ? distanceRef.current / elapsed : null)
+    }, 5000)
+    return () => window.clearInterval(timer)
+  }, [elapsedNow, running, segmentStartedAt])
+
+  return <strong className="otw-metric-value">{formatPacePer500m(displayedSpeed)}</strong>
+}
+
 export default function OtwApp() {
   const [mode, setMode] = useState<AppMode>('just-row')
   const [status, setStatus] = useState<SessionStatus>('idle')
@@ -199,6 +254,7 @@ export default function OtwApp() {
   const [gpsError, setGpsError] = useState<string | null>(null)
   const [storageError, setStorageError] = useState<string | null>(null)
   const [settingsError, setSettingsError] = useState<string | null>(null)
+  const [remoteNotice, setRemoteNotice] = useState<string | null>(null)
   const [intervalError, setIntervalError] = useState<string | null>(null)
   const [learningAction, setLearningAction] = useState<RemoteAction | null>(null)
   const [remoteMap, setRemoteMap] = useState<RemoteMap>(loadRemoteMap)
@@ -229,9 +285,12 @@ export default function OtwApp() {
   const segmentsRef = useRef<OtwSegment[]>([])
   const lapStartedAtRef = useRef(0)
   const lapStartDistanceRef = useRef(0)
-  const resetHoldRef = useRef<number | null>(null)
-  const resetTriggeredRef = useRef(false)
-  const actionDebounceRef = useRef<Partial<Record<RemoteAction, number>>>({})
+  const remoteControlPressRef = useRef<{ action: RemoteAction; timer: number; heldLong: boolean; startedStatus: SessionStatus; startedRevision: number; startedWhileStarting: boolean } | null>(null)
+  const statusRevisionRef = useRef(0)
+  const blockedRemoteControlsRef = useRef(new Set<RemoteAction>())
+  const pressedDirectionsRef = useRef(new Set<RemoteAction>())
+  const lastStrokeAtRef = useRef(Number.NEGATIVE_INFINITY)
+  const lastControlAtRef = useRef(Number.NEGATIVE_INFINITY)
   const audioContextRef = useRef<AudioContext | null>(null)
   const cachedWorkoutsRef = useRef(false)
   const startInProgressRef = useRef(false)
@@ -251,6 +310,7 @@ export default function OtwApp() {
   const wakeStatus = useScreenAwake(true)
 
   const setSessionStatus = useCallback((nextStatus: SessionStatus) => {
+    if (statusRef.current !== nextStatus) statusRevisionRef.current += 1
     statusRef.current = nextStatus
     setStatus(nextStatus)
   }, [])
@@ -434,40 +494,26 @@ export default function OtwApp() {
   }, [setSessionStatus])
 
   const resetSession = useCallback(async () => {
-    if (startInProgressRef.current || statusRef.current === 'resetting') return
+    if (startInProgressRef.current || statusRef.current === 'resetting' || statusRef.current === 'running') return
     const current = sessionRef.current
     if (current && !current.endedAt) {
       const previousStatus = statusRef.current
-      if (previousStatus === 'running') {
-        elapsedBeforeRunRef.current = elapsedNow()
-        setSessionStatus('resetting')
-        gpsRef.current.markGap()
-        lastGpsAtRef.current = null
-        positionRef.current = null
-      }
+      setSessionStatus('resetting')
       await storageWriteQueueRef.current
       try {
         await deleteOtwSession(current.id)
       } catch (error) {
         setStorageError(errorMessage(error))
-        if (previousStatus === 'running') {
-          runStartedAtRef.current = Date.now()
-          setSessionStatus('running')
-        }
+        setSessionStatus(previousStatus)
         return
       }
     }
 
     clearSessionDisplay()
     setStorageError(null)
+    setRemoteNotice(null)
     setRaceDistance(savedRaceDistance.value)
-  }, [clearSessionDisplay, elapsedNow, savedRaceDistance.value, setSessionStatus])
-
-  const askToReset = useCallback(() => {
-    if (window.confirm('Reset this OTW session? An unfinished recording will be discarded.')) {
-      void resetSession()
-    }
-  }, [resetSession])
+  }, [clearSessionDisplay, savedRaceDistance.value, setSessionStatus])
 
   const startSession = useCallback(async () => {
     if (statusRef.current !== 'idle' && statusRef.current !== 'completed') return
@@ -517,6 +563,7 @@ export default function OtwApp() {
     }
 
     setStorageError(null)
+    setRemoteNotice(null)
     setGpsError(null)
     setIntervalError(null)
     gpsRef.current.reset()
@@ -546,6 +593,7 @@ export default function OtwApp() {
   }, [mode, raceDistance, selectedSegments, selectedWorkout, setSessionStatus])
 
   const stopSession = useCallback(() => {
+    setRemoteNotice(null)
     void finishSession()
   }, [finishSession])
 
@@ -727,10 +775,27 @@ export default function OtwApp() {
   }, [status])
 
   useEffect(() => {
+    const cancelRemotePresses = () => {
+      if (remoteControlPressRef.current) window.clearTimeout(remoteControlPressRef.current.timer)
+      remoteControlPressRef.current = null
+      blockedRemoteControlsRef.current.clear()
+      pressedDirectionsRef.current.clear()
+    }
+
+    const matchAction = (event: KeyboardEvent) => (Object.keys(remoteMap) as RemoteAction[]).find((action) =>
+      remoteMap[action] !== '' && (event.code === remoteMap[action] || event.key === remoteMap[action]),
+    )
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (learningAction) {
         event.preventDefault()
-        const key = event.code || event.key
+        if (event.repeat) return
+        const key = event.code && event.code !== 'Unidentified' ? event.code : event.key
+        if (!key || key === 'Unidentified') {
+          setSettingsError('The controller did not provide a usable key.')
+          setLearningAction(null)
+          return
+        }
         const conflictingAction = (Object.keys(remoteMap) as RemoteAction[]).find(
           (action) => action !== learningAction && remoteMap[action] === key,
         )
@@ -743,49 +808,93 @@ export default function OtwApp() {
         setLearningAction(null)
         return
       }
-      if (event.repeat || isEditableTarget(event.target)) return
-
-      const matched = (Object.keys(remoteMap) as RemoteAction[]).find((action) =>
-        event.code === remoteMap[action] || event.key === remoteMap[action],
-      )
+      if ((activePanel && activePanel !== 'summary') || isEditableTarget(event.target)) return
+      const matched = matchAction(event)
       if (!matched) return
       event.preventDefault()
+      if (event.repeat) return
 
-      if (matched === 'reset') {
-        resetTriggeredRef.current = false
-        resetHoldRef.current = window.setTimeout(() => {
-          resetTriggeredRef.current = true
-          void resetSession()
-        }, 1200)
+      if (matched !== 'buttonA' && matched !== 'buttonB') {
+        if (pressedDirectionsRef.current.has(matched)) return
+        pressedDirectionsRef.current.add(matched)
+        if (statusRef.current !== 'running') return
+        const now = Date.now()
+        if (now - lastStrokeAtRef.current < 350) return
+        lastStrokeAtRef.current = now
+        stroke()
         return
       }
 
-      const now = Date.now()
-      if (now - (actionDebounceRef.current[matched] ?? 0) < 350) return
-      actionDebounceRef.current[matched] = now
-
-      if (matched === 'toggle') void startSession()
-      else if (matched === 'stop') stopSession()
-      else stroke()
+      if (remoteControlPressRef.current || blockedRemoteControlsRef.current.size > 0) {
+        if (remoteControlPressRef.current?.action === matched) {
+          window.clearTimeout(remoteControlPressRef.current.timer)
+          remoteControlPressRef.current = null
+        }
+        blockedRemoteControlsRef.current.add(matched)
+        return
+      }
+      const press = {
+        action: matched,
+        timer: 0,
+        heldLong: false,
+        startedStatus: statusRef.current,
+        startedRevision: statusRevisionRef.current,
+        startedWhileStarting: startInProgressRef.current,
+      }
+      press.timer = window.setTimeout(() => {
+        press.heldLong = true
+        if (press.startedStatus === 'running' || statusRef.current === 'running') {
+          if (statusRef.current === 'running') setRemoteNotice('Stop before resetting.')
+          return
+        }
+        if (press.startedWhileStarting || startInProgressRef.current || statusRevisionRef.current !== press.startedRevision) return
+        if (activePanel === 'summary') setActivePanel(null)
+        void resetSession()
+      }, 3000)
+      remoteControlPressRef.current = press
     }
 
     const onKeyUp = (event: KeyboardEvent) => {
-      if (event.code !== remoteMap.reset && event.key !== remoteMap.reset) return
-      if (resetHoldRef.current === null) return
-      if (resetHoldRef.current !== null) window.clearTimeout(resetHoldRef.current)
-      resetHoldRef.current = null
-      if (!resetTriggeredRef.current) askToReset()
-      resetTriggeredRef.current = false
+      const matched = matchAction(event)
+      if (!matched) return
+      if (matched !== 'buttonA' && matched !== 'buttonB') {
+        if (pressedDirectionsRef.current.delete(matched)) event.preventDefault()
+        return
+      }
+      if (blockedRemoteControlsRef.current.delete(matched)) {
+        event.preventDefault()
+        return
+      }
+      const press = remoteControlPressRef.current
+      if (!press || press.action !== matched) return
+      event.preventDefault()
+      window.clearTimeout(press.timer)
+      remoteControlPressRef.current = null
+      if (press.heldLong || press.startedWhileStarting || startInProgressRef.current ||
+        statusRevisionRef.current !== press.startedRevision || isEditableTarget(event.target) ||
+        (activePanel && activePanel !== 'summary')) return
+      const now = Date.now()
+      if (now - lastControlAtRef.current < 350) return
+      lastControlAtRef.current = now
+      setRemoteNotice(null)
+      if (statusRef.current === 'running') {
+        stopSession()
+      } else {
+        if (activePanel === 'summary') setActivePanel(null)
+        void startSession()
+      }
     }
 
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', cancelRemotePresses)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
-      if (resetHoldRef.current !== null) window.clearTimeout(resetHoldRef.current)
+      window.removeEventListener('blur', cancelRemotePresses)
+      cancelRemotePresses()
     }
-  }, [askToReset, learningAction, remoteMap, resetSession, saveRemoteMap, startSession, stopSession, stroke])
+  }, [activePanel, learningAction, remoteMap, resetSession, saveRemoteMap, startSession, stopSession, stroke])
 
   useEffect(() => () => {
     audioContextRef.current?.close()
@@ -978,7 +1087,14 @@ export default function OtwApp() {
           </div>
           <div className="otw-metric">
             <span className="otw-metric-label">Avg Pace (min / 500 m)</span>
-            <strong className="otw-metric-value">{formatPacePer500m(averageSpeed)}</strong>
+            <AveragePace
+              key={`${mode}:${status}:${selectedWorkoutId}:${workoutIndex}`}
+              speedMps={averageSpeed}
+              distance={displayedDistance}
+              segmentStartedAt={intervalMetricsActive ? progress.segmentStartedAt : 0}
+              elapsedNow={elapsedNow}
+              running={status === 'running'}
+            />
           </div>
           <div className={`otw-metric${raceTargetReached ? ' otw-metric-race-complete' : ''}${isRecovery ? ' otw-metric-recovery' : ''}`}>
             <span className="otw-metric-label">
@@ -1037,6 +1153,7 @@ export default function OtwApp() {
           {gpsError && <p>{gpsError}</p>}
           {storageError && <p className="otw-notice-error">Recording storage error: {storageError}</p>}
           {savedRaceDistance.error && <p className="otw-notice-error" role="alert">{savedRaceDistance.error}</p>}
+          {remoteNotice && <p>{remoteNotice}</p>}
           {wakeMessage && <p>{wakeMessage}</p>}
           {audioWarning && <p>{audioWarning}</p>}
         </div>
@@ -1045,18 +1162,15 @@ export default function OtwApp() {
           <button
             className="otw-button otw-button-primary"
             type="button"
-            onClick={() => void startSession()}
-            disabled={starting || !canStart || (
+            onClick={() => status === 'running' ? stopSession() : void startSession()}
+            disabled={starting || (status !== 'running' && (!canStart ||
               (mode === 'workout' && (!selectedWorkout || Boolean(selectedSegments.error))) ||
               (mode === 'race' && !validRaceDistance(raceDistance))
-            )}
+            ))}
           >
-            Start
+            {status === 'running' ? 'Stop' : 'Start'}
           </button>
-          <button className="otw-button" type="button" onClick={stopSession} disabled={status !== 'running'}>
-            Stop
-          </button>
-          <button className="otw-button otw-button-danger" type="button" onClick={() => void resetSession()} disabled={starting || status === 'resetting'}>
+          <button className="otw-button otw-button-danger" type="button" onClick={() => void resetSession()} disabled={starting || status === 'resetting' || status === 'running'}>
             Reset
           </button>
         </section>
@@ -1248,7 +1362,7 @@ export default function OtwApp() {
 
               {activePanel === 'remote' && (
                 <div className="otw-panel-content">
-                  <p className="otw-note">Pair a Bluetooth keyboard or media remote, then learn its buttons.</p>
+                  <p className="otw-note">Pair a Bluetooth keyboard or remote that sends keyboard events, then learn its buttons. Press A or B to start or stop; hold either for 3 seconds to reset when stopped. Press any direction to record a stroke.</p>
                   <div className="otw-remote-actions">
                     {(Object.keys(ACTION_LABELS) as RemoteAction[]).map((action) => (
                       <button
@@ -1257,7 +1371,7 @@ export default function OtwApp() {
                         aria-pressed={learningAction === action}
                         onClick={() => setLearningAction(action)}
                       >
-                        {learningAction === action ? `Press ${ACTION_LABELS[action]} key…` : `Learn ${ACTION_LABELS[action]} · ${remoteMap[action]}`}
+                        {learningAction === action ? `Press ${ACTION_LABELS[action]} key…` : `Learn ${ACTION_LABELS[action]} · ${remoteMap[action] || 'Not assigned'}`}
                       </button>
                     ))}
                     <button type="button" onClick={() => saveRemoteMap(DEFAULT_REMOTE_MAP)}>Restore defaults</button>
