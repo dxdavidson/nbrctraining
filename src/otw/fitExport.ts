@@ -40,6 +40,13 @@ const RECORD_FIELDS: FitField[] = [
 
 const RECORD_CADENCE_FIELDS = [...RECORD_FIELDS, { number: 4, size: 1, type: 'uint8' as const }]
 
+const TIMER_EVENT_FIELDS: FitField[] = [
+  { number: 253, size: 4, type: 'uint32' },
+  { number: 0, size: 1, type: 'enum' },
+  { number: 1, size: 1, type: 'enum' },
+  { number: 4, size: 1, type: 'uint8' },
+]
+
 const LAP_FIELDS: FitField[] = [
   { number: 253, size: 4, type: 'uint32' },
   { number: 0, size: 1, type: 'enum' },
@@ -176,11 +183,31 @@ export function encodeFitSession(session: OtwSession): Uint8Array {
   const averageSpeed = durationMilliseconds > 0 ? totalDistanceMeters / (durationMilliseconds / 1000) : null
   const maximumSpeed = speeds.length > 0 ? Math.max(...speeds) : null
   const first = firstPosition(session.records)
+  const timerRecords = session.records.filter((record) => record.timerEvent)
+  const pausedPeriods: { elapsedSeconds: number; durationMs: number }[] = []
+  let pauseStart: OtwRecord | null = null
+  for (const record of timerRecords) {
+    if (record.timerEvent === 'pause') pauseStart = record
+    else if (record.timerEvent === 'resume' && pauseStart) {
+      pausedPeriods.push({ elapsedSeconds: pauseStart.elapsedSeconds, durationMs: Math.max(0, record.timestamp - pauseStart.timestamp) })
+      pauseStart = null
+    }
+  }
+  const wallTime = (elapsed: number, afterPause: boolean) => startedAt + elapsed * 1000 +
+    pausedPeriods.reduce((total, pause) =>
+      total + (pause.elapsedSeconds < elapsed || (afterPause && pause.elapsedSeconds === elapsed) ? pause.durationMs : 0), 0)
 
   appendDefinition(data, 0, 0, FILE_ID_FIELDS)
   appendMessage(data, 0, FILE_ID_FIELDS, [4, 1, 0, 0, fitTimestamp(startedAt)])
+  if (timerRecords.length > 0) {
+    appendDefinition(data, 5, 21, TIMER_EVENT_FIELDS)
+    appendMessage(data, 5, TIMER_EVENT_FIELDS, [fitTimestamp(startedAt), 0, 0, 0])
+  }
 
   for (const record of session.records) {
+    if (record.timerEvent) {
+      appendMessage(data, 5, TIMER_EVENT_FIELDS, [fitTimestamp(record.timestamp), 0, record.timerEvent === 'pause' ? 1 : 0, 0])
+    }
     const withCadence = record.cadence !== null
     const fields = withCadence ? RECORD_CADENCE_FIELDS : RECORD_FIELDS
     const localMessage = withCadence ? 1 : 0
@@ -195,6 +222,9 @@ export function encodeFitSession(session: OtwSession): Uint8Array {
     if (withCadence) values.push(Math.round(record.cadence as number))
     appendMessage(data, localMessage, fields, values)
   }
+  if (timerRecords.length > 0 && timerRecords.at(-1)?.timerEvent === 'resume') {
+    appendMessage(data, 5, TIMER_EVENT_FIELDS, [fitTimestamp(endedAt), 0, 1, 0])
+  }
 
   const laps = sessionLaps(session)
   laps.forEach((lap, index) => {
@@ -208,19 +238,20 @@ export function encodeFitSession(session: OtwSession): Uint8Array {
     const lapSpeeds = lapRecords.map((record) => record.speedMps).filter((speed): speed is number => speed !== null)
     const lapAverageSpeed = lapDuration > 0 ? lapDistance / lapDuration : null
     const lapMaximumSpeed = lapSpeeds.length > 0 ? Math.max(...lapSpeeds) : null
-    const lapTimestamp = startedAt + lap.endElapsedSeconds * 1000
+    const lapStartTimestamp = wallTime(lap.startElapsedSeconds, true)
+    const lapTimestamp = wallTime(lap.endElapsedSeconds, false)
 
     if (index === 0) appendDefinition(data, 2, 19, LAP_FIELDS)
     appendMessage(data, 2, LAP_FIELDS, [
       fitTimestamp(lapTimestamp),
       9,
       1,
-      fitTimestamp(startedAt + lap.startElapsedSeconds * 1000),
+      fitTimestamp(lapStartTimestamp),
       semicircles(startPosition?.latitude ?? null),
       semicircles(startPosition?.longitude ?? null),
       semicircles(endPosition?.latitude ?? null),
       semicircles(endPosition?.longitude ?? null),
-      Math.round(lapDuration * 1000),
+      Math.round(Math.max(0, lapTimestamp - lapStartTimestamp)),
       Math.round(lapDuration * 1000),
       Math.round(lapDistance * 100),
       lapAverageSpeed === null ? Number.NaN : Math.round(lapAverageSpeed * 1000),
@@ -241,7 +272,7 @@ export function encodeFitSession(session: OtwSession): Uint8Array {
     semicircles(first?.longitude ?? null),
     15,
     0,
-    Math.round(durationMilliseconds),
+    Math.round(timerRecords.length > 0 ? Math.max(0, endedAt - startedAt) : durationMilliseconds),
     Math.round(durationMilliseconds),
     Math.round(totalDistanceMeters * 100),
     averageSpeed === null ? Number.NaN : Math.round(averageSpeed * 1000),

@@ -18,10 +18,10 @@ const session: OtwSession = {
   laps: [{ label: 'Session', startElapsedSeconds: 0, endElapsedSeconds: 2, startDistanceMeters: 0, endDistanceMeters: 6 }],
 }
 
-function readFitMessages(file: Uint8Array): { globalMessage: number; fields: number[] }[] {
+function readFitMessages(file: Uint8Array): { globalMessage: number; fields: number[]; values: Map<number, number> }[] {
   const data = file.slice(14, -2)
   const definitions = new Map<number, { globalMessage: number; fields: { number: number; size: number }[] }>()
-  const messages: { globalMessage: number; fields: number[] }[] = []
+  const messages: { globalMessage: number; fields: number[]; values: Map<number, number> }[] = []
   let offset = 0
 
   while (offset < data.length) {
@@ -44,11 +44,18 @@ function readFitMessages(file: Uint8Array): { globalMessage: number; fields: num
 
     const definition = definitions.get(localMessage)
     if (!definition) throw new Error(`Missing definition for local message ${localMessage}.`)
+    const values = new Map<number, number>()
+    for (const field of definition.fields) {
+      const view = new DataView(data.buffer, data.byteOffset + offset, field.size)
+      const value = field.size === 1 ? view.getUint8(0) : field.size === 2 ? view.getUint16(0, true) : view.getUint32(0, true)
+      values.set(field.number, value)
+      offset += field.size
+    }
     messages.push({
       globalMessage: definition.globalMessage,
       fields: definition.fields.map((field) => field.number),
+      values,
     })
-    offset += definition.fields.reduce((size, field) => size + field.size, 0)
   }
   return messages
 }
@@ -88,5 +95,63 @@ describe('FIT export', () => {
 
     const laps = readFitMessages(encodeFitSession(twoLaps)).filter((message) => message.globalMessage === 19)
     expect(laps).toHaveLength(2)
+  })
+
+  it('exports pause and resume timer events and separates elapsed from active time', () => {
+    const started = Date.parse(session.startedAt)
+    const baseRecord = session.records[0]
+    const paused: OtwSession = {
+      ...session,
+      endedAt: new Date(started + 19000).toISOString(),
+      elapsedSeconds: 4,
+      records: [
+        baseRecord,
+        { ...baseRecord, timestamp: started + 2000, elapsedSeconds: 2, distanceMeters: 6, timerEvent: 'pause' },
+        { ...baseRecord, timestamp: started + 12000, elapsedSeconds: 2, distanceMeters: 6, latitude: null, longitude: null, timerEvent: 'resume' },
+        { ...baseRecord, timestamp: started + 14000, elapsedSeconds: 4, distanceMeters: 12, timerEvent: 'pause' },
+      ],
+      laps: [
+        { label: 'First', startElapsedSeconds: 0, endElapsedSeconds: 2, startDistanceMeters: 0, endDistanceMeters: 6 },
+        { label: 'Second', startElapsedSeconds: 2, endElapsedSeconds: 4, startDistanceMeters: 6, endDistanceMeters: 12 },
+      ],
+    }
+    const messages = readFitMessages(encodeFitSession(paused))
+    const fitStart = started / 1000 - 631_065_600
+    expect(messages.filter((message) => message.globalMessage === 21).map((message) =>
+      [message.values.get(253), message.values.get(1)],
+    )).toEqual([[fitStart, 0], [fitStart + 2, 1], [fitStart + 12, 0], [fitStart + 14, 1]])
+    const summary = messages.find((message) => message.globalMessage === 18)
+    expect(summary?.values.get(7)).toBe(19000)
+    expect(summary?.values.get(8)).toBe(4000)
+    const laps = messages.filter((message) => message.globalMessage === 19)
+    expect(laps.map((lap) => [lap.values.get(2), lap.values.get(253), lap.values.get(7), lap.values.get(8)])).toEqual([
+      [fitStart, fitStart + 2, 2000, 2000],
+      [fitStart + 12, fitStart + 14, 2000, 2000],
+    ])
+    expect(fitCrc16(encodeFitSession(paused))).toBe(0)
+  })
+
+  it('ends a resumed timer when an interval session completes automatically', () => {
+    const started = Date.parse(session.startedAt)
+    const baseRecord = session.records[0]
+    const resumed: OtwSession = {
+      ...session,
+      endedAt: new Date(started + 14000).toISOString(),
+      elapsedSeconds: 4,
+      records: [
+        baseRecord,
+        { ...baseRecord, timestamp: started + 2000, elapsedSeconds: 2, timerEvent: 'pause' },
+        { ...baseRecord, timestamp: started + 12000, elapsedSeconds: 2, timerEvent: 'resume' },
+        { ...baseRecord, timestamp: started + 14000, elapsedSeconds: 4 },
+      ],
+      laps: [{ label: 'Work', startElapsedSeconds: 0, endElapsedSeconds: 4, startDistanceMeters: 0, endDistanceMeters: 6 }],
+    }
+    const messages = readFitMessages(encodeFitSession(resumed))
+    const timerEvents = messages.filter((message) => message.globalMessage === 21)
+    expect(timerEvents.map((event) => event.values.get(1))).toEqual([0, 1, 0, 1])
+    expect(timerEvents.at(-1)?.values.get(253)).toBe(started / 1000 - 631_065_600 + 14)
+    const lap = messages.find((message) => message.globalMessage === 19)
+    expect(lap?.values.get(7)).toBe(14000)
+    expect(lap?.values.get(8)).toBe(4000)
   })
 })

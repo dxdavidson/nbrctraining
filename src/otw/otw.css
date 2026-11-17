@@ -352,10 +352,16 @@ body.otw-document #root {
   background: var(--otw-accent);
 }
 
-.otw-button-stop {
+.otw-button-pause {
   color: #fff;
-  border-color: #a12e2e;
-  background: #a12e2e;
+  border-color: #895500;
+  background: #895500;
+}
+
+.otw-button-resume {
+  color: #fff;
+  border-color: #185ba4;
+  background: #185ba4;
 }
 
 .otw-button-danger {

@@ -6,6 +6,7 @@ export interface OtwRecord {
   speedMps: number | null
   distanceMeters: number
   cadence: number | null
+  timerEvent?: 'pause' | 'resume'
 }
 
 export interface OtwLap {
