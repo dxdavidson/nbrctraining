@@ -1160,7 +1160,7 @@ export default function OtwApp() {
 
         <section className="otw-controls" aria-label="Session controls">
           <button
-            className="otw-button otw-button-primary"
+            className={`otw-button ${status === 'running' ? 'otw-button-stop' : 'otw-button-primary'}`}
             type="button"
             onClick={() => status === 'running' ? stopSession() : void startSession()}
             disabled={starting || (status !== 'running' && (!canStart ||

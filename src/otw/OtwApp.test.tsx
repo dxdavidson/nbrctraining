@@ -113,15 +113,18 @@ describe('OtwApp', () => {
     expect(screen.getByText('Elapsed Time')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Stroke rate unavailable. Tap to record a catch.' })).toBeDisabled()
     expect(screen.getAllByRole('button', { name: /^(Start|Stop|Reset)$/ })).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'Start' })).toHaveClass('otw-button-primary')
 
     await user.click(screen.getByRole('button', { name: 'Start' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled())
+    expect(screen.getByRole('button', { name: 'Stop' })).toHaveClass('otw-button-stop')
     expect(screen.queryByRole('button', { name: 'Start' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reset' })).toBeDisabled()
     expect(screen.queryByRole('button', { name: /^(Pause|Resume)$/ })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Stop' }))
 
     await waitFor(() => expect(mocks.saveOtwSession).toHaveBeenCalledWith(expect.objectContaining({ endedAt: expect.any(String) })))
+    expect(screen.getByRole('button', { name: 'Start' })).toHaveClass('otw-button-primary')
     expect(mocks.downloadFitSession).not.toHaveBeenCalled()
     expect(mocks.appendOtwRecord).toHaveBeenCalledWith(
       'session-1',
