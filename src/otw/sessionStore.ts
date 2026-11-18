@@ -11,6 +11,7 @@ export interface OtwRecord {
 
 export interface OtwLap {
   label: string
+  kind?: 'work' | 'recovery'
   startElapsedSeconds: number
   endElapsedSeconds: number
   startDistanceMeters: number

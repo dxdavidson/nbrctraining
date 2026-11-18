@@ -97,6 +97,56 @@ describe('FIT export', () => {
     expect(laps).toHaveLength(2)
   })
 
+  it('exports work laps only while retaining recovery records and session totals', () => {
+    const started = Date.parse(session.startedAt)
+    const workoutSession: OtwSession = {
+      ...session,
+      mode: 'workout',
+      endedAt: new Date(started + 9000).toISOString(),
+      elapsedSeconds: 9,
+      records: [
+        session.records[0],
+        { ...session.records[1], timestamp: started + 4000, elapsedSeconds: 4, distanceMeters: 8 },
+        { ...session.records[2], timestamp: started + 9000, elapsedSeconds: 9, distanceMeters: 18 },
+      ],
+      laps: [
+        { label: 'work recovery', kind: 'work', startElapsedSeconds: 0, endElapsedSeconds: 3, startDistanceMeters: 0, endDistanceMeters: 6 },
+        { label: 'work recovery recovery', kind: 'recovery', startElapsedSeconds: 3, endElapsedSeconds: 5, startDistanceMeters: 6, endDistanceMeters: 10 },
+        { label: 'second', kind: 'work', startElapsedSeconds: 5, endElapsedSeconds: 7, startDistanceMeters: 10, endDistanceMeters: 14 },
+        { label: 'third', kind: 'work', startElapsedSeconds: 7, endElapsedSeconds: 9, startDistanceMeters: 14, endDistanceMeters: 18 },
+      ],
+    }
+    const encoded = encodeFitSession(workoutSession)
+    const messages = readFitMessages(encoded)
+    const fitStart = started / 1000 - 631_065_600
+    const laps = messages.filter((message) => message.globalMessage === 19)
+    expect(laps.map((lap) => [lap.values.get(2), lap.values.get(253), lap.values.get(9), lap.values.get(254)])).toEqual([
+      [fitStart, fitStart + 3, 600, 0],
+      [fitStart + 5, fitStart + 7, 400, 1],
+      [fitStart + 7, fitStart + 9, 400, 2],
+    ])
+    const summary = messages.find((message) => message.globalMessage === 18)
+    expect(summary?.values.get(26)).toBe(3)
+    expect(summary?.values.get(9)).toBe(1800)
+    expect(summary?.values.get(8)).toBe(9000)
+    expect(messages.filter((message) => message.globalMessage === 20)).toHaveLength(3)
+    expect(fitCrc16(encoded)).toBe(0)
+  })
+
+  it('does not create a replacement workout lap for a recovery-only or empty session', () => {
+    const recovery = { label: 'recovery', kind: 'recovery' as const, startElapsedSeconds: 0, endElapsedSeconds: 2, startDistanceMeters: 0, endDistanceMeters: 6 }
+    for (const laps of [[], [recovery]]) {
+      const messages = readFitMessages(encodeFitSession({ ...session, mode: 'workout', laps }))
+      expect(messages.filter((message) => message.globalMessage === 19)).toHaveLength(0)
+      expect(messages.find((message) => message.globalMessage === 18)?.values.get(26)).toBe(0)
+    }
+    expect(readFitMessages(encodeFitSession({ ...session, laps: [] })).filter((message) => message.globalMessage === 19)).toHaveLength(1)
+  })
+
+  it('rejects workout laps whose kinds are unknown instead of guessing from names', () => {
+    expect(() => encodeFitSession({ ...session, mode: 'workout' })).toThrow('identifying work and recovery')
+  })
+
   it('exports pause and resume timer events and separates elapsed from active time', () => {
     const started = Date.parse(session.startedAt)
     const baseRecord = session.records[0]

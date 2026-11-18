@@ -363,11 +363,12 @@ export default function OtwApp() {
     queueStorageWrite(() => saveOtwSession(metadata))
   }, [queueStorageWrite])
 
-  const closeLap = useCallback((label: string, endElapsed: number, endDistance: number) => {
+  const closeLap = useCallback((segment: OtwSegment, endElapsed: number, endDistance: number) => {
     const current = sessionRef.current
     if (!current) return
     const lap: OtwLap = {
-      label,
+      label: segment.label,
+      kind: segment.kind,
       startElapsedSeconds: lapStartedAtRef.current,
       endElapsedSeconds: endElapsed,
       startDistanceMeters: lapStartDistanceRef.current,
@@ -394,7 +395,7 @@ export default function OtwApp() {
       const previous = progressRef.current
       const next = advanceInterval(segmentsRef.current, previous, elapsed, distance)
       if (next.changed) {
-        closeLap(segmentsRef.current[previous.index].label, elapsed, distance)
+        closeLap(segmentsRef.current[previous.index], elapsed, distance)
         progressRef.current = next
         setProgress(next)
         current = sessionRef.current
@@ -420,6 +421,7 @@ export default function OtwApp() {
       const segment = segmentsRef.current[progressRef.current.index]
       laps = [...laps, {
         label: segment.label,
+        kind: segment.kind,
         startElapsedSeconds: lapStartedAtRef.current,
         endElapsedSeconds: elapsed,
         startDistanceMeters: lapStartDistanceRef.current,
@@ -601,7 +603,7 @@ export default function OtwApp() {
       const previous = progressRef.current
       const next = advanceInterval(segmentsRef.current, previous, elapsed, distance)
       if (next.changed) {
-        closeLap(segmentsRef.current[previous.index].label, elapsed, distance)
+        closeLap(segmentsRef.current[previous.index], elapsed, distance)
         playIntervalSignal()
         progressRef.current = next
         setProgress(next)
@@ -740,7 +742,7 @@ export default function OtwApp() {
 
       const oldSegment = segmentsRef.current[previous.index]
       if (oldSegment) {
-        closeLap(oldSegment.label, elapsed, gpsMetricsRef.current.distanceMeters)
+        closeLap(oldSegment, elapsed, gpsMetricsRef.current.distanceMeters)
         playIntervalSignal()
       }
       progressRef.current = next
@@ -1044,7 +1046,24 @@ export default function OtwApp() {
 
   const exportHistorySession = (savedSession: OtwSession) => {
     try {
-      downloadFitSession(savedSession)
+      let exportSession = savedSession
+      if (savedSession.mode === 'workout' && savedSession.laps.some((lap) => !lap.kind)) {
+        const workout = workouts.find((item) => item.id === savedSession.workoutId)
+        if (!workout) {
+          throw new Error('This older session needs its original workout in the offline catalogue to identify recovery laps.')
+        }
+        const segments = buildOtwSegments(workout.intervals)
+        if (savedSession.laps.length > segments.length || savedSession.laps.some((lap, index) =>
+          lap.label !== segments[index].label || (lap.kind && lap.kind !== segments[index].kind),
+        )) {
+          throw new Error('This older session no longer matches its saved workout, so recovery laps cannot be identified safely.')
+        }
+        exportSession = {
+          ...savedSession,
+          laps: savedSession.laps.map((lap, index) => ({ ...lap, kind: segments[index].kind })),
+        }
+      }
+      downloadFitSession(exportSession)
       setHistoryError(null)
     } catch (error) {
       setHistoryError(`FIT download failed: ${errorMessage(error)}`)

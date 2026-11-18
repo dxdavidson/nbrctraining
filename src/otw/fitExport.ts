@@ -163,6 +163,12 @@ function lastPosition(records: OtwRecord[]): OtwRecord | undefined {
 }
 
 function sessionLaps(session: OtwSession) {
+  if (session.mode === 'workout') {
+    if (session.laps.some((lap) => lap.kind !== 'work' && lap.kind !== 'recovery')) {
+      throw new Error('Cannot export workout laps without identifying work and recovery intervals.')
+    }
+    return session.laps.filter((lap) => lap.kind === 'work')
+  }
   if (session.laps.length > 0) return session.laps
   return [{
     label: 'Session',

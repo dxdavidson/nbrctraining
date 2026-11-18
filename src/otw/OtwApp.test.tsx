@@ -679,6 +679,10 @@ describe('OtwApp', () => {
     expect(Array.from(rows[1].children, (cell) => cell.textContent)).toEqual(['1/2', '00:00:03', '6', '04:10'])
     expect(Array.from(rows[2].children, (cell) => cell.textContent)).toEqual(['2/2', '00:00:03', '9', '02:47'])
     expect(Array.from(rows[3].children, (cell) => cell.textContent)).toEqual(['Total', '00:00:06', '15', '03:20'])
+    await waitFor(() => expect(mocks.saveOtwSession).toHaveBeenCalledWith(expect.objectContaining({
+      endedAt: expect.any(String),
+      laps: [expect.objectContaining({ kind: 'work' }), expect.objectContaining({ kind: 'recovery' }), expect.objectContaining({ kind: 'work' })],
+    })))
   })
 
   it('omits unfinished intervals on Stop and reports when none are completed', async () => {
@@ -707,6 +711,10 @@ describe('OtwApp', () => {
     expect(within(dialog).getAllByRole('row')).toHaveLength(3)
     expect(Array.from(within(dialog).getByRole('row', { name: /^1\/3/ }).children, (cell) => cell.textContent)).toEqual(['1/3', '00:00:03', '0', '--:--'])
     expect(Array.from(within(dialog).getByRole('row', { name: /Total/ }).children, (cell) => cell.textContent)).toEqual(['Total', '00:00:03', '0', '--:--'])
+    await waitFor(() => expect(mocks.saveOtwSession).toHaveBeenCalledWith(expect.objectContaining({
+      endedAt: expect.any(String),
+      laps: [expect.objectContaining({ kind: 'work' }), expect.objectContaining({ kind: 'recovery' }), expect.objectContaining({ kind: 'work' })],
+    })))
     await user.click(within(dialog).getByRole('button', { name: 'Close' }))
     await user.click(screen.getByRole('button', { name: 'Start' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeEnabled())
@@ -934,6 +942,24 @@ describe('OtwApp', () => {
     expect(mocks.downloadFitSession).not.toHaveBeenCalled()
   })
 
+  it('marks a recovery interrupted by Finish as recovery rather than work', async () => {
+    vi.useFakeTimers()
+    mocks.fetchOtwWorkouts.mockResolvedValueOnce([workout('time-1', 'TIME', 'Finish during recovery', 'time', 3)])
+    render(<OtwApp />)
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Intervals' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Finish during recovery' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Load Workout' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Start' })) })
+    await act(async () => { vi.advanceTimersByTime(4000) })
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Finish' })) })
+    expect(mocks.saveOtwSession).toHaveBeenCalledWith(expect.objectContaining({
+      endedAt: expect.any(String),
+      laps: [expect.objectContaining({ kind: 'work' }), expect.objectContaining({ kind: 'recovery' })],
+    }))
+  })
+
   it.each(['Space', 'Escape'])('uses %s to start, pause and resume without remote finish or reset', async (code) => {
     vi.useFakeTimers()
     render(<OtwApp />)
@@ -1090,6 +1116,61 @@ describe('OtwApp', () => {
     expect(mocks.downloadFitSession).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'completed-session' }),
     )
+  })
+
+  it('identifies laps in older workout sessions using the matching cached workout', async () => {
+    const user = userEvent.setup()
+    const oldWorkout = workout('legacy', 'TIME', 'Legacy workout', 'time', 3)
+    mocks.getCachedOtwWorkouts.mockResolvedValueOnce([oldWorkout])
+    mocks.fetchOtwWorkouts.mockResolvedValueOnce([oldWorkout])
+    mocks.getCompletedOtwSessions.mockResolvedValueOnce([{
+      id: 'legacy-session', mode: 'workout', workoutId: 'legacy', workoutName: 'legacy',
+      startedAt: '2026-01-01T00:00:00.000Z', endedAt: '2026-01-01T00:00:08.000Z', elapsedSeconds: 8,
+      records: [],
+      laps: [
+        { label: 'Work (1/2)', startElapsedSeconds: 0, endElapsedSeconds: 3, startDistanceMeters: 0, endDistanceMeters: 3 },
+        { label: 'Work recovery', startElapsedSeconds: 3, endElapsedSeconds: 5, startDistanceMeters: 3, endDistanceMeters: 5 },
+        { label: 'Work (2/2)', startElapsedSeconds: 5, endElapsedSeconds: 8, startDistanceMeters: 5, endDistanceMeters: 8 },
+      ],
+    }])
+    render(<OtwApp />)
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(screen.getByRole('button', { name: 'History' }))
+    await user.click(await screen.findByRole('button', { name: 'Export FIT' }))
+    expect(mocks.downloadFitSession).toHaveBeenCalledWith(expect.objectContaining({
+      laps: [expect.objectContaining({ kind: 'work' }), expect.objectContaining({ kind: 'recovery' }), expect.objectContaining({ kind: 'work' })],
+    }))
+  })
+
+  it('reports an error instead of guessing when an older workout no longer matches', async () => {
+    const user = userEvent.setup()
+    mocks.fetchOtwWorkouts.mockResolvedValueOnce([workout('legacy', 'TIME', 'Changed workout', 'time', 3)])
+    mocks.getCompletedOtwSessions.mockResolvedValueOnce([{
+      id: 'legacy-session', mode: 'workout', workoutId: 'legacy', workoutName: 'legacy',
+      startedAt: '2026-01-01T00:00:00.000Z', endedAt: '2026-01-01T00:00:03.000Z', elapsedSeconds: 3,
+      records: [], laps: [{ label: 'Different interval', startElapsedSeconds: 0, endElapsedSeconds: 3, startDistanceMeters: 0, endDistanceMeters: 3 }],
+    }])
+    render(<OtwApp />)
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(screen.getByRole('button', { name: 'History' }))
+    await user.click(await screen.findByRole('button', { name: 'Export FIT' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('recovery laps cannot be identified safely')
+    expect(mocks.downloadFitSession).not.toHaveBeenCalled()
+  })
+
+  it('reports when the original workout for a legacy export is unavailable', async () => {
+    const user = userEvent.setup()
+    mocks.getCompletedOtwSessions.mockResolvedValueOnce([{
+      id: 'legacy-session', mode: 'workout', workoutId: 'missing', workoutName: 'missing',
+      startedAt: '2026-01-01T00:00:00.000Z', endedAt: '2026-01-01T00:00:03.000Z', elapsedSeconds: 3,
+      records: [], laps: [{ label: 'Work', startElapsedSeconds: 0, endElapsedSeconds: 3, startDistanceMeters: 0, endDistanceMeters: 3 }],
+    }])
+    render(<OtwApp />)
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(screen.getByRole('button', { name: 'History' }))
+    await user.click(await screen.findByRole('button', { name: 'Export FIT' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('needs its original workout')
+    expect(mocks.downloadFitSession).not.toHaveBeenCalled()
   })
 
   it('labels older workout sessions without a name as Intervals in History', async () => {
