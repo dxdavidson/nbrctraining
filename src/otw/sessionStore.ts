@@ -28,6 +28,9 @@ export interface OtwSession {
   elapsedSeconds: number
   records: OtwRecord[]
   laps: OtwLap[]
+  stravaAthleteId?: string
+  stravaStatus?: 'pending' | 'processing' | 'uploaded' | 'failed' | 'uncertain'
+  stravaError?: string
 }
 
 const DATABASE_NAME = 'nbrc-otw'
@@ -131,6 +134,9 @@ export async function saveOtwSession(session: OtwSession): Promise<void> {
     endedAt: session.endedAt,
     elapsedSeconds: session.elapsedSeconds,
     laps: session.laps,
+    stravaAthleteId: session.stravaAthleteId,
+    stravaStatus: session.stravaStatus,
+    stravaError: session.stravaError,
   }
   transaction.objectStore(SESSIONS_STORE).put(metadata)
   await transactionDone(transaction)

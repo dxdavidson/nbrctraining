@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchOtwWorkouts, type OtwWorkout } from '../api'
+import { fetchOtwWorkouts, stravaLoginUrl, type OtwWorkout } from '../api'
 import { formatElapsed, formatPacePer500m, GpsAccumulator, type GpsMetrics } from './gps'
 import { downloadFitSession } from './fitExport'
 import {
@@ -25,6 +25,7 @@ import {
 } from './sessionStore'
 import { StrokeRateTracker } from './strokeRate'
 import { useScreenAwake } from './useScreenAwake'
+import { useStrava } from './useStrava'
 
 type AppMode = 'just-row' | 'workout' | 'race'
 
@@ -268,6 +269,8 @@ export default function OtwApp() {
   const [activePanel, setActivePanel] = useState<OtwPanel>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const strava = useStrava()
+  const { athleteId: stravaAthleteId, sync: syncStrava } = strava
 
   const statusRef = useRef<SessionStatus>('idle')
   const elapsedBeforeRunRef = useRef(0)
@@ -275,6 +278,7 @@ export default function OtwApp() {
   const sessionRef = useRef<OtwSession | null>(null)
   const recordsRef = useRef<OtwRecord[]>([])
   const storageWriteQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const storageWriteFailedRef = useRef(false)
   const gpsRef = useRef(new GpsAccumulator())
   const gpsMetricsRef = useRef<GpsMetrics>({ distanceMeters: 0, speedMps: null })
   const positionRef = useRef<{ latitude: number; longitude: number } | null>(null)
@@ -294,6 +298,7 @@ export default function OtwApp() {
   const cachedWorkoutsRef = useRef(false)
   const startInProgressRef = useRef(false)
   const cadenceRef = useRef<number | null>(null)
+  const historyRevisionRef = useRef(0)
 
   const selectedWorkout = workouts.find((workout) => workout.id === selectedWorkoutId) ?? null
   const pendingWorkout = workouts.find((workout) => workout.id === pendingWorkoutId) ?? null
@@ -353,7 +358,10 @@ export default function OtwApp() {
   const queueStorageWrite = useCallback((write: () => Promise<void>) => {
     storageWriteQueueRef.current = storageWriteQueueRef.current
       .then(write)
-      .catch((error: unknown) => setStorageError(errorMessage(error)))
+      .catch((error: unknown) => {
+        storageWriteFailedRef.current = true
+        setStorageError(errorMessage(error))
+      })
   }, [])
 
   const persistSession = useCallback((updated: OtwSession) => {
@@ -467,9 +475,12 @@ export default function OtwApp() {
     sessionRef.current = completed
     setSession(completed)
     if (wasRunning) queueStorageWrite(() => appendOtwRecord(current.id, sequence, finalRecord))
-    queueStorageWrite(() => saveOtwSession(completed))
+    queueStorageWrite(() => saveOtwSession(stravaAthleteId && !storageWriteFailedRef.current
+      ? { ...completed, stravaAthleteId, stravaStatus: 'pending' }
+      : completed))
     await storageWriteQueueRef.current
-  }, [closeLap, elapsedNow, queueStorageWrite, raceStartDistance, saveRaceDistance, setSessionStatus])
+    if (stravaAthleteId && !storageWriteFailedRef.current) void syncStrava()
+  }, [closeLap, elapsedNow, queueStorageWrite, raceStartDistance, saveRaceDistance, setSessionStatus, stravaAthleteId, syncStrava])
 
   const clearSessionDisplay = useCallback(() => {
     sessionRef.current = null
@@ -542,6 +553,7 @@ export default function OtwApp() {
       setStarting(false)
     }
 
+    storageWriteFailedRef.current = false
     setStorageError(null)
     setGpsError(null)
     setIntervalError(null)
@@ -703,6 +715,12 @@ export default function OtwApp() {
   useEffect(() => {
     cadenceRef.current = cadence
   }, [cadence])
+
+  useEffect(() => {
+    if (activePanel !== 'history' || strava.revision === historyRevisionRef.current) return
+    historyRevisionRef.current = strava.revision
+    void getCompletedOtwSessions().then(setHistory).catch((error: unknown) => setHistoryError(errorMessage(error)))
+  }, [activePanel, strava.revision])
 
   useEffect(() => {
     const tracker = new StrokeRateTracker({
@@ -991,6 +1009,7 @@ export default function OtwApp() {
     setMenuOpen(false)
     setActivePanel(panel)
     if (panel === 'history') {
+      historyRevisionRef.current = strava.revision
       setHistoryLoading(true)
       setHistoryError(null)
       void storageWriteQueueRef.current
@@ -1044,29 +1063,39 @@ export default function OtwApp() {
       .catch((error: unknown) => setHistoryError(errorMessage(error)))
   }
 
+  const prepareHistorySession = (savedSession: OtwSession): OtwSession => {
+    if (savedSession.mode === 'workout' && savedSession.laps.some((lap) => !lap.kind)) {
+      const workout = workouts.find((item) => item.id === savedSession.workoutId)
+      if (!workout) {
+        throw new Error('This older session needs its original workout in the offline catalogue to identify recovery laps.')
+      }
+      const segments = buildOtwSegments(workout.intervals)
+      if (savedSession.laps.length > segments.length || savedSession.laps.some((lap, index) =>
+        lap.label !== segments[index].label || (lap.kind && lap.kind !== segments[index].kind),
+      )) {
+        throw new Error('This older session no longer matches its saved workout, so recovery laps cannot be identified safely.')
+      }
+      return { ...savedSession, laps: savedSession.laps.map((lap, index) => ({ ...lap, kind: segments[index].kind })) }
+    }
+    return savedSession
+  }
+
   const exportHistorySession = (savedSession: OtwSession) => {
     try {
-      let exportSession = savedSession
-      if (savedSession.mode === 'workout' && savedSession.laps.some((lap) => !lap.kind)) {
-        const workout = workouts.find((item) => item.id === savedSession.workoutId)
-        if (!workout) {
-          throw new Error('This older session needs its original workout in the offline catalogue to identify recovery laps.')
-        }
-        const segments = buildOtwSegments(workout.intervals)
-        if (savedSession.laps.length > segments.length || savedSession.laps.some((lap, index) =>
-          lap.label !== segments[index].label || (lap.kind && lap.kind !== segments[index].kind),
-        )) {
-          throw new Error('This older session no longer matches its saved workout, so recovery laps cannot be identified safely.')
-        }
-        exportSession = {
-          ...savedSession,
-          laps: savedSession.laps.map((lap, index) => ({ ...lap, kind: segments[index].kind })),
-        }
-      }
-      downloadFitSession(exportSession)
+      downloadFitSession(prepareHistorySession(savedSession))
       setHistoryError(null)
     } catch (error) {
       setHistoryError(`FIT download failed: ${errorMessage(error)}`)
+    }
+  }
+
+  const uploadHistorySession = (savedSession: OtwSession) => {
+    try {
+      const prepared = prepareHistorySession(savedSession)
+      setHistoryError(null)
+      void strava.upload(prepared)
+    } catch (error) {
+      setHistoryError(`Strava upload failed: ${errorMessage(error)}`)
     }
   }
 
@@ -1199,6 +1228,7 @@ export default function OtwApp() {
           {gpsUnsupported && status === 'running' && <p>GPS is not supported in this browser.</p>}
           {gpsError && <p>{gpsError}</p>}
           {storageError && <p className="otw-notice-error">Recording storage error: {storageError}</p>}
+          {strava.athleteId && strava.message && <p className="otw-notice-error">{strava.message}</p>}
           {savedRaceDistance.error && <p className="otw-notice-error" role="alert">{savedRaceDistance.error}</p>}
           {wakeMessage && <p>{wakeMessage}</p>}
           {audioWarning && <p>{audioWarning}</p>}
@@ -1332,7 +1362,8 @@ export default function OtwApp() {
                   {historyLoading && <p className="otw-note">Loading saved sessions…</p>}
                   {historyError && <p className="otw-message otw-message-error" role="alert">{historyError}</p>}
                   {!historyLoading && !historyError && history.length === 0 && <p className="otw-note">No completed sessions yet.</p>}
-                  <p className="otw-note">Sessions are saved on this phone only. Export a FIT file when you want to upload one.</p>
+                  <p className="otw-note">Sessions are saved on this phone. Connected Strava sessions upload when online.</p>
+                  {strava.message && <p className="otw-message otw-message-error" role="status">{strava.message}</p>}
                   <ul className="otw-history-list">
                     {history.map((savedSession) => (
                       <li key={savedSession.id}>
@@ -1340,11 +1371,18 @@ export default function OtwApp() {
                           <strong>{savedSession.workoutName ?? MODE_LABELS[savedSession.mode]}</strong>
                           <span>{new Date(savedSession.startedAt).toLocaleString()}</span>
                           <span>{formatElapsed(savedSession.elapsedSeconds)}</span>
+                          {savedSession.stravaStatus && <span>Strava: {savedSession.stravaStatus}{savedSession.stravaError ? ` - ${savedSession.stravaError}` : ''}</span>}
+                          {savedSession.stravaStatus === 'uncertain' && <span>Check Strava before uploading this session again.</span>}
                         </div>
                         <div className="otw-history-actions">
                           <button className="otw-panel-button" type="button" onClick={() => exportHistorySession(savedSession)}>
                             Export FIT
                           </button>
+                          {strava.connection?.connected && (!savedSession.stravaStatus || savedSession.stravaStatus === 'failed') && (
+                            <button className="otw-panel-button" type="button" onClick={() => uploadHistorySession(savedSession)}>
+                              {savedSession.stravaStatus === 'failed' ? 'Retry Strava' : 'Upload to Strava'}
+                            </button>
+                          )}
                           <button
                             className="otw-panel-button"
                             type="button"
@@ -1367,6 +1405,11 @@ export default function OtwApp() {
 
               {activePanel === 'settings' && (
                 <div className="otw-panel-content">
+                  <h3>Strava</h3>
+                  <p className="otw-note">{strava.connection === null ? 'Connection status unavailable.' : strava.connection.connected ? `Connected${strava.connection.athleteName ? ` as ${strava.connection.athleteName}` : ''}` : 'Not connected'}</p>
+                  <a className="otw-panel-button" href={stravaLoginUrl}>{strava.connection?.connected ? 'Replace Strava connection' : 'Connect Strava'}</a>
+                  {strava.connection?.connected && <button className="otw-panel-button" type="button" onClick={() => void strava.disconnect()}>Disconnect Strava</button>}
+                  {strava.message && <p className="otw-message otw-message-error" role="status">{strava.message}</p>}
                   <label className="otw-panel-label">
                     No-catch timeout
                     <select

@@ -556,6 +556,7 @@ body.otw-document #root {
 
 .otw-history-list li > .otw-history-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
 
@@ -574,6 +575,12 @@ body.otw-document #root {
   background: #fff;
   font: inherit;
   font-weight: 700;
+}
+
+a.otw-panel-button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
 }
 
 .otw-remote-actions {

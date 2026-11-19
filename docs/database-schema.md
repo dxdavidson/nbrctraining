@@ -53,9 +53,31 @@ erDiagram
         datetime created_at
         datetime updated_at
 	}
+	STRAVA_TOKENS {
+		uuid device_id PK
+		string athlete_id
+		string athlete_name
+		string access_token
+		string refresh_token
+		datetime expires_at
+		datetime created_at
+		datetime updated_at
+	}
+	STRAVA_UPLOADS {
+		string athlete_id PK
+		uuid session_id PK
+		string status
+		string upload_id
+		string activity_id
+		string error
+		datetime created_at
+		datetime updated_at
+	}
 	PLANS ||--o{ BLOCKS : contains
 	BLOCKS ||--o{ WORKOUTS : contains
 	WORKOUTS ||--o{ INTERVALS : contains
 ```
 
 `CONCEPT2_TOKENS` is standalone (no FK to the plan/block/workout hierarchy) — `device_id` is a random identifier issued in a browser cookie when an athlete links their Concept2 account, since the app has no separate login system.
+
+`STRAVA_TOKENS` is also device-linked and standalone. `STRAVA_UPLOADS` records upload status per athlete and locally stored session; it does not store session records or FIT files. Its composite key prevents duplicate upload attempts.

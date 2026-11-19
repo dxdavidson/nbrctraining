@@ -56,6 +56,42 @@ export interface OtwWorkout {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
 
+export type StravaConnection = { connected: false } | { connected: true; athleteId: string; athleteName: string | null }
+export interface StravaUpload {
+  status: 'sending' | 'processing' | 'uploaded' | 'failed' | 'uncertain'
+  upload_id?: string | null
+  activity_id?: string | null
+  error?: string | null
+}
+
+async function stravaRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, credentials: 'include' })
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({})) as { error?: string }
+    throw new Error(body.error ?? `Strava request failed (${response.status}).`)
+  }
+  if (response.status === 204) return undefined as T
+  return response.json() as Promise<T>
+}
+
+export const stravaLoginUrl = `${API_BASE_URL}/auth/strava/login`
+export function getStravaConnection(): Promise<StravaConnection> {
+  return stravaRequest('/api/strava/status')
+}
+export function disconnectStrava(): Promise<void> {
+  return stravaRequest('/api/strava/connection', { method: 'DELETE' })
+}
+export function submitStravaUpload(sessionId: string, athleteId: string, data: Uint8Array, retry = false): Promise<StravaUpload> {
+  const buffer = new ArrayBuffer(data.byteLength)
+  new Uint8Array(buffer).set(data)
+  return stravaRequest(`/api/strava/uploads/${encodeURIComponent(sessionId)}${retry ? '?retry=true' : ''}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/vnd.ant.fit', 'X-Strava-Athlete-Id': athleteId }, body: buffer,
+  })
+}
+export function getStravaUpload(sessionId: string): Promise<StravaUpload> {
+  return stravaRequest(`/api/strava/uploads/${encodeURIComponent(sessionId)}`)
+}
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`)
   if (!response.ok) {

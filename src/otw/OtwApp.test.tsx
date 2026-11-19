@@ -35,9 +35,18 @@ const mocks = vi.hoisted(() => ({
   saveOtwSession: vi.fn<(session: OtwSession) => Promise<void>>(async () => {}),
   saveOtwWorkouts: vi.fn(async () => {}),
   downloadFitSession: vi.fn<(session: OtwSession) => void>(),
+  strava: {
+    connection: { connected: false } as { connected: boolean; athleteId?: string; athleteName?: string },
+    athleteId: null as string | null,
+    message: null as string | null,
+    revision: 0,
+    sync: vi.fn(async () => {}),
+    upload: vi.fn(async () => {}),
+    disconnect: vi.fn(async () => {}),
+  },
 }))
 
-vi.mock('../api', () => ({ fetchOtwWorkouts: mocks.fetchOtwWorkouts }))
+vi.mock('../api', () => ({ fetchOtwWorkouts: mocks.fetchOtwWorkouts, stravaLoginUrl: '/auth/strava/login' }))
 vi.mock('./sessionStore', () => ({
   appendOtwRecord: mocks.appendOtwRecord,
   createOtwSession: mocks.createOtwSession,
@@ -50,6 +59,7 @@ vi.mock('./sessionStore', () => ({
 }))
 vi.mock('./fitExport', () => ({ downloadFitSession: mocks.downloadFitSession }))
 vi.mock('./useScreenAwake', () => ({ useScreenAwake: () => 'disabled' }))
+vi.mock('./useStrava', () => ({ useStrava: () => mocks.strava }))
 
 import OtwApp from './OtwApp'
 
@@ -91,6 +101,8 @@ describe('OtwApp', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     window.localStorage.clear()
+    mocks.strava.connection = { connected: false }
+    mocks.strava.athleteId = null
   })
 
   afterEach(() => {
@@ -138,6 +150,37 @@ describe('OtwApp', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeEnabled())
     expect(mocks.createOtwSession).toHaveBeenCalledTimes(2)
     expect(container.querySelector('.otw-metric-value')?.textContent).toBe('0')
+  })
+
+  it('queues a completed session for the connected Strava athlete', async () => {
+    mocks.strava.connection = { connected: true, athleteId: '123', athleteName: 'Rower' }
+    mocks.strava.athleteId = '123'
+    const user = userEvent.setup()
+    render(<OtwApp />)
+    await user.click(screen.getByRole('button', { name: 'Start' }))
+    await user.click(await screen.findByRole('button', { name: 'Pause' }))
+    await user.click(screen.getByRole('button', { name: 'Finish' }))
+    await waitFor(() => expect(mocks.saveOtwSession).toHaveBeenCalledWith(expect.objectContaining({
+      endedAt: expect.any(String), stravaAthleteId: '123', stravaStatus: 'pending',
+    })))
+    await waitFor(() => expect(mocks.strava.sync).toHaveBeenCalled())
+    expect(mocks.downloadFitSession).not.toHaveBeenCalled()
+  })
+
+  it('does not automatically queue a session after a recording storage error', async () => {
+    mocks.strava.connection = { connected: true, athleteId: '123' }
+    mocks.strava.athleteId = '123'
+    const user = userEvent.setup()
+    render(<OtwApp />)
+    await user.click(screen.getByRole('button', { name: 'Start' }))
+    await screen.findByRole('button', { name: 'Pause' })
+    mocks.appendOtwRecord.mockRejectedValueOnce(new Error('Storage unavailable'))
+    await user.click(screen.getByRole('button', { name: 'Pause' }))
+    await screen.findByText(/Recording storage error: Storage unavailable/)
+    await user.click(screen.getByRole('button', { name: 'Finish' }))
+    await waitFor(() => expect(mocks.saveOtwSession).toHaveBeenCalledWith(expect.objectContaining({ endedAt: expect.any(String) })))
+    expect(mocks.saveOtwSession).not.toHaveBeenCalledWith(expect.objectContaining({ stravaStatus: 'pending' }))
+    expect(mocks.strava.sync).not.toHaveBeenCalled()
   })
 
   it('updates average pace every five seconds while current pace stays responsive', async () => {

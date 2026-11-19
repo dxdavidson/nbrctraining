@@ -15,6 +15,7 @@ NBRC Training is a React and TypeScript application for browsing rowing training
 - [Deploying to https://nbrowingclub.com/training](#deploying-to-httpsnbrowingclubcomtraining)
   - [Configure the Railway API](#configure-the-railway-api)
   - [Configure Concept2 Logbook OAuth](#configure-concept2-logbook-oauth)
+  - [Configure Strava OAuth](#configure-strava-oauth)
   - [Staging build](#staging-build)
 - [Test and Validate](#test-and-validate)
 - [Versioning](#versioning)
@@ -144,6 +145,8 @@ The highlighted **Just Row**, **Race**, or **Intervals** button shows the curren
 The **Intervals** button lists all `OTW` workouts, including those in unpublished plans and blocks. Filter the list by the work interval types: Distance, Time, Mixed, or None. An Invalid category appears if a workout has an unrecognized work interval type. Workouts with no intervals or invalid intervals cannot be started. Select a workout's description and press **Load Workout** to enter Intervals mode and preview the first interval in Remaining. The top-left status shows the current work interval number, or the number of completed intervals during recovery. During recovery the Remaining field turns amber and shows **Next interval starts in**. The workout ends after the final work interval, without a final recovery. When a workout finishes, a summary shows time, GPS distance, and pace for completed work intervals only, with totals excluding recovery and unfinished intervals. Opening the page online downloads the workout catalogue and intervals into IndexedDB so they remain selectable offline. Interval changes advance automatically and trigger a beep/vibration when supported.
 
 Use the top-right menu to browse session history and export any saved session as FIT, or access stroke and remote settings. Positions with accuracy worse than 25 m and implausible jumps are filtered; small movements accumulate until they exceed the GPS noise threshold, and speed is smoothed over recent valid samples. Session records are saved to IndexedDB while rowing. Pause freezes elapsed time, distance, remaining distance and intervals; movement while paused is not recorded. Resume continues the same session. Finish is enabled only while paused and saves the session to History without downloading a file; completed intervals finish automatically. Open **History** to export a session as FIT, delete one session with the trash button, or use **Delete all history**. History lives only on the phone (IndexedDB) and is never sent to the database. The FIT file includes active-time records and pause/resume timer events. Workout laps include work intervals only, including a partially completed work interval if finished early; recovery remains in the overall activity. For older saved workouts, the original workout must still be in the local catalogue and match the saved lap labels to identify recovery; otherwise export reports an error.
+
+After the API is configured for Strava, open **Settings** on the phone and select **Connect Strava**. Authorize activity uploads; each athlete connects their own account. New completed sessions are queued for that account and uploaded automatically when the app is open and online. FIT data is generated in memory and sent through the API to Strava, including the recorded GPS track. History shows upload status and can upload older sessions or retry a known failure. Existing FIT export remains available. If an upload outcome is unknown, check Strava before taking further action; it is not automatically resent. Pending sessions are retained on the phone, do not transfer to a different Strava athlete, and sync when the app is next open and online. Closing the app prevents background sync. Deleting a session also deletes its local pending upload. Disconnecting removes the API's saved tokens, but does not revoke authorization at Strava; revoke it in Strava's connected-app settings if needed.
 
 The display uses Screen Wake Lock when available and a muted-video fallback otherwise. For a Bluetooth remote that sends keyboard events to the browser, use **Learn** in Remote controls to map both buttons and each D-pad direction. A short press of either button starts, pauses or resumes on release; holding for 3 seconds or longer does nothing. Finish is only available on screen. Each D-pad direction records a stroke. Existing remote mappings migrate Start and Stop to A and B and Stroke to Up; check and learn the remaining directions as needed. Controllers that send gamepad or mouse events rather than keyboard events are not supported by these mappings. Stroke-rate timeout defaults to 3 seconds (configurable from 2–10), the averaging window can be set to 4, 5, or 6 catch intervals, and the expected slowest rate (used for a timeout warning) can be adjusted from 16–22 spm.
 
@@ -278,6 +281,21 @@ $env:BASE_PATH='/training/'; npm run build
 Upload the contents of `dist/` to the `/training` path on the host. The host must be configured to serve `index.html` for any unmatched path under `/training` (SPA fallback), since routes like `/training/plans/:id` are handled client-side.
 
 After deployment, load `https://nbrowingclub.com/training` and confirm plan data loads. The browser should request it from `https://your-server-production.up.railway.app/api/...`.
+
+### Configure Strava OAuth
+
+Create a Strava API application and set its authorization callback domain to the public hostname of the Express API. Apply [the Strava migration](db/migrations/2026-11-19-add-strava.sql) to the target database using your normal deployment process; do not apply it to a shared database without authorization. Add these variables to the Railway Express service:
+
+```dotenv
+STRAVA_CLIENT_ID=<Strava application client ID>
+STRAVA_CLIENT_SECRET=<Strava application client secret>
+STRAVA_REDIRECT_URI=https://your-server-production.up.railway.app/auth/strava/callback
+STRAVA_FRONTEND_URL=https://nbrowingclub.com/training/otw.html
+```
+
+For local development, use the corresponding API callback, such as `http://localhost:4000/auth/strava/callback`, and `http://localhost:5173/otw.html` for the frontend. The frontend origin must match `STRAVA_FRONTEND_URL` and be permitted by `CLIENT_ORIGIN`. HTTPS is required for cross-site cookies in production. Each athlete authorizes `activity:write` in Strava; access and rotating refresh tokens are stored server-side. Do not put secrets or athlete tokens in `VITE_` variables, source control, or browser code. Strava may restrict which athletes can authorize an unapproved application; check the app's API settings before rollout.
+
+The API stores tokens and upload identifiers/status in PostgreSQL, but not the FIT file or GPS records. Upload processing is asynchronous. Network failures after submission can leave an uncertain outcome to prevent duplicate activities; check the athlete's Strava account before handling those cases manually. A browser that blocks cross-site cookies may prevent the connection from working when the frontend and API are on different sites.
 
 The Netlify deployment is unaffected: its build runs `npm run build` without `BASE_PATH` set, so it keeps using `/` as the base and continues serving from the domain root.
 

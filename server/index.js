@@ -5,6 +5,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { pool } from './db.js'
 import { groupWorkouts, parseWorkoutCsv } from './csvImport.js'
 import { registerConcept2Routes } from './concept2Auth.js'
+import { registerStravaRoutes } from './strava.js'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -27,6 +28,7 @@ app.use(cookieParser())
 app.use(express.text({ type: ['text/csv', 'text/plain'], limit: '2mb' }))
 
 registerConcept2Routes(app)
+registerStravaRoutes(app, pool)
 
 function hasValidImportToken(request) {
   const configuredToken = process.env.IMPORT_TOKEN
