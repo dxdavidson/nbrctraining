@@ -294,6 +294,7 @@ describe('OtwApp', () => {
     await user.click(screen.getByRole('button', { name: 'More options' }))
     const menu = document.getElementById('otw-menu')
     if (!menu) throw new Error('Options menu did not open.')
+    expect(within(menu).getByRole('link', { name: 'Training Plan' })).toHaveAttribute('href', './index.html')
     expect(within(menu).queryByRole('button', { name: /^(Just Row|Race|Intervals)$/ })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Race' }))
     expect(screen.queryByText('Race', { selector: 'p' })).not.toBeInTheDocument()

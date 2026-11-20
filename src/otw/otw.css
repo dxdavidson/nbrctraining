@@ -136,7 +136,9 @@ body.otw-document #root {
   box-shadow: 0 8px 24px rgb(16 42 54 / 18%);
 }
 
-.otw-menu button {
+.otw-menu button,
+.otw-menu a {
+  display: block;
   min-height: 2.75rem;
   padding: 0.5rem 0.7rem;
   border: 0;
@@ -146,6 +148,11 @@ body.otw-document #root {
   font: inherit;
   font-weight: 700;
   text-align: left;
+}
+
+.otw-menu a {
+  box-sizing: border-box;
+  text-decoration: none;
 }
 
 .otw-metrics {
@@ -597,6 +604,7 @@ a.otw-panel-button {
 .otw-button:focus-visible,
 .otw-mode-controls button:focus-visible,
 .otw-menu button:focus-visible,
+.otw-menu a:focus-visible,
 .otw-menu-toggle:focus-visible,
 .otw-metric-tappable:focus-visible,
 .otw-race-distance:focus-visible,

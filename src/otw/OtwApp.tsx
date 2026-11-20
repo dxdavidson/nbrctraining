@@ -1140,6 +1140,7 @@ export default function OtwApp() {
             </button>
             {menuOpen && (
               <div className="otw-menu" id="otw-menu">
+                <a href="./index.html">Training Plan</a>
                 <button type="button" onClick={() => openPanel('history')}>History</button>
                 <button type="button" onClick={() => openPanel('settings')}>Settings</button>
                 <button type="button" onClick={() => openPanel('remote')}>Remote controls</button>
