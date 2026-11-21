@@ -23,22 +23,30 @@ describe('calculateRoundRobin', () => {
     const result = calculateRoundRobin({ rowerCount: 7, machineCount: 5, workSeconds: 180, restSeconds: 10 })
 
     expect(result?.feasible).toBe(false)
-    expect(result?.minimumRestSeconds).toBe(75)
+    expect(result?.minimumRestSeconds).toBe(100)
   })
 
-  it('enforces a 20-second minimum rest for machine changeover even when the ratio allows less', () => {
+  it('includes the machine changeover time in the minimum rower rest', () => {
     const result = calculateRoundRobin({ rowerCount: 6, machineCount: 5, workSeconds: 60, restSeconds: 13 })
 
     expect(result?.feasible).toBe(false)
-    expect(result?.minimumRestSeconds).toBe(20)
+    expect(result?.minimumRestSeconds).toBe(40)
   })
 
   it('is feasible right at the 20-second changeover floor', () => {
     const result = calculateRoundRobin({ rowerCount: 6, machineCount: 5, workSeconds: 60, restSeconds: 36 })
 
     expect(result?.feasible).toBe(true)
+    expect(result?.minimumRestSeconds).toBe(40)
     expect(result?.programmedRestSeconds).toBe(20)
     expect(result?.delaySeconds).toBeCloseTo(16)
+  })
+
+  it('reports the minimum rower rest needed for machine changeover', () => {
+    const result = calculateRoundRobin({ rowerCount: 9, machineCount: 5, workSeconds: 240, restSeconds: 200 })
+
+    expect(result?.feasible).toBe(false)
+    expect(result?.minimumRestSeconds).toBe(230)
   })
 
   it('returns null for invalid inputs', () => {
@@ -56,15 +64,23 @@ describe('Round Robin Ergos', () => {
     expect(screen.getByText('Delay between rowers starting')).toBeInTheDocument()
   })
 
-  it('warns when the requested rest is infeasible for the given group size', async () => {
+  it('shows a consistent minimum rest for the 9 rower / 5 machine example', async () => {
     const user = userEvent.setup()
     render(<RoundRobinErgos />)
 
+    await user.clear(screen.getByLabelText(/Number of rowers/i))
+    await user.type(screen.getByLabelText(/Number of rowers/i), '9')
+    await user.clear(screen.getByLabelText(/Number of machines/i))
+    await user.type(screen.getByLabelText(/Number of machines/i), '5')
+    await user.clear(screen.getByLabelText(/Interval work time/i))
+    await user.type(screen.getByLabelText(/Interval work time/i), '4:00')
     const restInput = screen.getByLabelText(/Interval rest time/i)
     await user.clear(restInput)
-    await user.type(restInput, '0:10')
+    await user.type(restInput, '3:20')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/too short/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '3:20 rest is too short for 9 rowers on 5 machines. The shortest rest that keeps the machines constantly busy is 3:50.',
+    )
   })
 
   it('requires valid rower and machine counts', async () => {

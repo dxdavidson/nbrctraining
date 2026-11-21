@@ -51,8 +51,9 @@ export function calculateRoundRobin(inputs: RoundRobinInputs): RoundRobinResult 
   }
 
   const rawRestSeconds = machineCount * ((workSeconds + restSeconds) / rowerCount) - workSeconds
-  const theoreticalMinimumRestSeconds = (workSeconds * (rowerCount - machineCount)) / machineCount
-  const minimumRestSeconds = ceilToRestIncrement(Math.max(theoreticalMinimumRestSeconds, MIN_CHANGEOVER_REST_SECONDS))
+  const minimumRestSeconds = ceilToRestIncrement(
+    (rowerCount * (workSeconds + MIN_CHANGEOVER_REST_SECONDS)) / machineCount - workSeconds,
+  )
   const feasible = rawRestSeconds >= MIN_CHANGEOVER_REST_SECONDS
 
   // Recompute the delay from the rounded rest so the rotation stays in sync with what's programmed.
